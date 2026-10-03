@@ -1,0 +1,6 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {MotorcyclePhysics,ratios} from '../src/physics.js';
+const road={height:0,surface:'asphalt'};const input={throttle:1,brake:0,steer:0,clutch:0,rearBrake:0};
+test('six ratios decrease and shifts affect coupled engine RPM',()=>{const p=new MotorcyclePhysics();p.speed=20;for(let i=0;i<120;i++)p.step(1/120,input,road);const before=p.rpm;p.shift(1);assert.equal(p.gear,2);assert.ok(p.rpm<before);assert.equal(ratios.length,7)});
+test('neutral decouples engine from rear wheel',()=>{const p=new MotorcyclePhysics();p.gear=0;for(let i=0;i<600;i++)p.step(1/120,input,road);assert.equal(p.speed,0);assert.ok(p.rpm>9000)});
+test('throttle accelerates, braking stops without reversing',()=>{const p=new MotorcyclePhysics();for(let i=0;i<600;i++)p.step(1/120,input,road);assert.ok(p.speed>10);for(let i=0;i<900;i++)p.step(1/120,{...input,throttle:0,brake:1},road);assert.equal(p.speed,0)});
+test('lean and turn directions agree; state stays finite',()=>{const p=new MotorcyclePhysics();for(let i=0;i<1200;i++)p.step(1/120,{...input,steer:.5},road);assert.ok(p.heading>0);assert.ok(p.lean<0);for(const n of ['x','z','rpm','speed','lean'])assert.ok(Number.isFinite(p[n]))});

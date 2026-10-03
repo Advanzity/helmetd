@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.blend1
+.DS_Store
+
+# Legacy combined mesh; the runtime loads building-tiles.json and its tiles.
+/public/assets/buildings.glb

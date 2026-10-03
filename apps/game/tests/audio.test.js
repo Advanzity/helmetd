@@ -1,0 +1,5 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+function engine(){let Processor;vm.runInNewContext(fs.readFileSync(new URL('../public/engine-worklet.js',import.meta.url),'utf8'),{AudioWorkletProcessor:class{constructor(){this.port={}}},sampleRate:48000,registerProcessor:(name,p)=>Processor=p,Math});return new Processor()}
+function run(p,blocks){let sum=0;for(let i=0;i<blocks;i++){const channels=[new Float32Array(128),new Float32Array(128)];assert.equal(p.process([], [channels]),true);for(const v of channels[0]){assert.ok(Number.isFinite(v));assert.ok(Math.abs(v)<=1);sum+=v*v}}return sum}
+test('combustion worklet generates finite bounded audio from idle to redline',()=>{const p=engine();for(const rpm of [1300,4000,7000,11000]){p.port.onmessage({data:{rpm,load:1}});assert.ok(run(p,60)>0)}});
+test('quickshifter ignition cut silences combustion after its decay',()=>{const p=engine();p.port.onmessage({data:{rpm:6500,load:0}});run(p,100);const active=run(p,100);p.port.onmessage({data:{cut:1}});run(p,300);const cut=run(p,100);assert.ok(cut<active*.01)});
