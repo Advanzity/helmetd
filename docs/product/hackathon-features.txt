@@ -1,0 +1,276 @@
+Hackathon
+
+hardware
+- [ ] get raspberry pi 5
+- [ ] get active cooler
+- [ ] get battery / power system
+- [ ] get 3 cameras
+- [ ] mount left blind spot camera
+- [ ] mount right blind spot camera
+- [ ] mount rear camera
+- [ ] get usb hub if needed
+- [ ] get active hdmi to usb-c adapter
+- [ ] get imu
+- [ ] get gps module
+- [ ] get usb can adapter
+- [ ] add physical event-save button
+- [ ] mount pi and battery on helmet
+- [ ] secure all cables
+- [x] get xreal glasses
+
+raspberry pi software
+- [ ] detect all 3 cameras
+- [ ] stream all 3 cameras simultaneously
+- [ ] send camera feeds to macbook
+- [ ] read imu
+- [ ] read gps
+- [ ] read motorcycle can data
+- [ ] send telemetry to macbook
+- [ ] receive rendered hud from macbook
+- [ ] decode hud stream
+- [ ] output hud to xreal
+- [ ] create helmetd service
+- [ ] automatically reconnect after connection loss
+
+computer vision
+- [ ] detect cars
+- [ ] detect motorcycles
+- [ ] detect bicycles
+- [ ] detect pedestrians
+- [ ] detect cones
+- [ ] detect stopped vehicles
+- [ ] detect road debris
+- [ ] track objects between frames
+- [ ] detect approaching vehicles
+- [ ] estimate distance
+- [ ] estimate relative closing speed
+
+blind spot system
+- [ ] define left blind spot zone
+- [ ] define right blind spot zone
+- [ ] detect vehicles in both zones
+- [ ] read left turn signal
+- [ ] read right turn signal
+- [ ] left signal opens left camera
+- [ ] right signal opens right camera
+- [ ] highlight blind spot vehicles
+- [ ] show blind spot warning
+- [ ] hide camera when signal turns off
+
+rear safety
+- [ ] monitor rear camera continuously
+- [ ] detect vehicles behind rider
+- [ ] detect rapidly approaching vehicles
+- [ ] detect vehicles following too closely
+- [ ] create rear collision zone
+- [ ] show rear warning
+- [ ] optionally display rear camera
+- [ ] increase rear monitoring during hard braking
+
+motorcycle telemetry
+- [ ] identify motorcycle diagnostic connector
+- [ ] connect can adapter
+- [ ] read speed
+- [ ] read rpm
+- [ ] read gear
+- [ ] read turn signals
+- [ ] read brake state
+- [ ] read throttle
+- [ ] read wheel speed if available
+- [x] read abs data if available
+- [ ] create keyboard fallback for hackathon
+
+xreal hud
+- [ ] show speed
+- [ ] show gear
+- [ ] show navigation
+- [ ] show distance to next turn
+- [ ] show nearby vehicle indicators
+- [ ] show blind spot warnings
+- [ ] show rear warnings
+- [ ] show road hazards
+- [ ] show temporary camera windows
+- [ ] create normal mode
+- [ ] create left-turn mode
+- [ ] create right-turn mode
+- [ ] create rear-threat mode
+- [ ] create hazard mode
+- [ ] create alert priority system
+
+navigation
+- [ ] get gps position
+- [ ] create destination routing
+- [ ] show turn arrows
+- [ ] show distance to next turn
+- [ ] warn about upcoming hazards
+- [ ] warn about dangerous intersections
+- [ ] warn about sharp curves
+- [ ] support safer route
+- [ ] support fastest route
+
+road hazard detection
+- [ ] detect potholes using imu
+- [ ] attach gps coordinates
+- [ ] detect debris
+- [ ] detect stopped vehicles
+- [ ] detect construction
+- [ ] detect blocked lanes
+- [ ] create hazard records
+- [ ] warn approaching rider
+- [ ] expire old hazards
+
+crowdsourced safety network
+- [ ] upload anonymous hazards
+- [ ] download nearby hazards
+- [ ] warn approaching riders
+- [ ] merge duplicate reports
+- [ ] calculate hazard confidence
+- [ ] create pothole map
+- [ ] create debris map
+- [ ] create construction map
+- [ ] create dangerous intersection map
+
+near-miss detection
+- [ ] detect hard braking
+- [ ] detect sudden steering
+- [ ] combine with vehicle detection
+- [ ] detect rapid closing events
+- [ ] mark probable near miss
+- [ ] save gps location
+- [ ] upload anonymous near misses
+- [ ] create dangerous-road heatmap
+- [ ] create dangerous-intersection heatmap
+
+event recorder
+- [ ] buffer all 3 cameras continuously
+- [ ] keep previous 30 seconds
+- [ ] save next 30 seconds after event
+- [ ] save gps
+- [ ] save speed
+- [ ] save imu data
+- [ ] save motorcycle telemetry
+- [ ] manual save button
+- [ ] save on hard braking
+- [ ] save on impact
+- [ ] save on near collision
+- [ ] save on probable crash
+
+crash detection
+- [ ] detect large acceleration spike
+- [ ] detect abnormal orientation
+- [ ] check previous speed
+- [ ] classify probable crash
+- [ ] start emergency countdown
+- [ ] generate emergency packet
+- [ ] include time
+- [ ] include gps
+- [ ] include speed
+- [ ] include impact magnitude
+- [ ] include orientation
+- [ ] include camera clips
+
+intersection safety
+- [ ] detect cross traffic
+- [ ] track vehicles entering rider path
+- [ ] warn about likely path conflicts
+- [ ] save dangerous locations
+
+unpredictable vehicle detection
+- [ ] detect vehicles drifting toward rider
+- [ ] detect repeated lane movement
+- [ ] detect rapidly changing distance
+- [ ] warn about unstable nearby vehicles
+
+group riding
+- [ ] create rider groups
+- [ ] share rider locations
+- [ ] show rider distance
+- [ ] detect rider falling behind
+- [ ] detect unexpected stops
+- [ ] notify group of possible crash
+- [ ] share hazards with group
+
+civic dashboard
+- [ ] map potholes
+- [ ] map road defects
+- [ ] map near misses
+- [ ] map hard braking events
+- [ ] map dangerous intersections
+- [ ] show report count
+- [ ] show confidence
+- [ ] show severity
+
+24-hour hackathon mvp
+- [ ] get 3 cameras visible on macbook
+- [ ] stream pi to mac reliably
+- [ ] get vehicle detection working
+- [ ] get vehicle tracking working
+- [ ] create left blind spot detection
+- [ ] create right blind spot detection
+- [ ] connect or simulate turn signals
+- [ ] show corresponding camera on turn signal
+- [ ] create rear approaching-vehicle warning
+- [ ] get motorcycle telemetry or simulate it
+- [ ] connect imu
+- [ ] connect gps
+- [ ] create simple navigation
+- [ ] output hud to xreal
+- [ ] create event recorder
+- [ ] create crash trigger
+- [ ] detect one road hazard
+- [ ] save hazard with gps
+- [ ] display hazards on dashboard
+- [ ] simulate second rider receiving hazard
+- [ ] polish hud
+- [ ] mount prototype to helmet
+- [ ] record demo
+- [ ] prepare live demo
+- [ ] prepare pitch
+
+The idea:
+ the system would have three cameras, with a left blind spot camera, right blind spot camera, and rear camera, all streaming through the raspberry pi 5 to the macbook where the actual computer vision and rendering happens
+the left and right cameras would constantly monitor the blind spots, and when you activate a turn signal the matching camera view can automatically appear in the xreal glasses with detected vehicles highlighted so you can see what is beside you without relying only on turning your head
+the rear camera would constantly monitor traffic behind you and detect vehicles that are getting too close, approaching unusually fast, or entering a rear collision zone, then show a warning or temporarily bring up the rear camera feed
+the cameras would also support general object detection for cars, motorcycles, bicycles, pedestrians, cones, stopped vehicles, debris, and other useful road hazards
+the system could track detected vehicles over multiple frames instead of treating every frame independently, which lets us determine whether something is staying beside you, moving away, or rapidly closing distance
+the bike would connect through can or the diagnostic connector so we can read whatever the motorcycle exposes, including speed, rpm, gear, left and right turn signals, brakes, throttle, wheel information, engine information, and potentially abs data
+turn signal state would directly control the hud, so activating the right signal could immediately prioritize the right camera and right blind spot detector while the left signal does the opposite
+brake information could also affect the system, so if you brake hard it could pay extra attention to vehicles approaching from behind
+an imu in the helmet would measure head movement, acceleration, rotation, and orientation, which we can use for head-aware hud behavior, crash detection, motion tracking, and eventually more stable ar overlays
+gps would provide location, speed, navigation, hazard locations, route information, and the ability to associate dangerous events with specific roads or intersections
+the xreal glasses would show a minimal adaptive hud rather than constantly covering your vision, with things like current speed, gear, navigation, warnings, nearby vehicle indicators, and temporary camera windows only when they are useful
+navigation could show simple directional instructions such as an arrow and distance to the next turn instead of displaying an entire map
+the hud would have different states depending on what is happening, so normal riding stays minimal, a turn signal opens the corresponding blind spot information, a rear threat gets priority if something is approaching quickly, and a major hazard temporarily overrides less important information
+the system could use the helmet imu to tell roughly where you are looking, so looking toward the right side could prepare or emphasize information from the right camera before you even activate the signal
+the macbook would handle the heavy processing including computer vision, tracking, ai, navigation logic, hazard detection, and rendering, while the raspberry pi mainly handles cameras, sensors, motorcycle telemetry, networking, and output to the xreal glasses
+the three camera feeds would be sent wirelessly from the pi to the macbook using compressed video, while imu, gps, can, and control information would travel through separate low-latency telemetry streams
+the macbook would render the final hud, compress it, send it back to the raspberry pi, and the pi would output it through hdmi and an active hdmi-to-usb-c adapter to the xreal glasses
+the cameras themselves could eventually use onboard h264 or mjpeg compression so the raspberry pi mostly forwards the streams instead of having to encode three raw feeds itself
+the system could continuously record all three cameras into a circular buffer, so if something happens it can save the previous 20 or 30 seconds along with the following footage instead of only recording after the rider reacts
+the event recorder could also save synchronized gps, speed, motorcycle telemetry, and imu information alongside the video, giving you a much better record of an incident than a normal gopro
+a button or voice command could manually save an event, while automatic triggers could include a large impact, extreme acceleration, sudden braking, unusual bike orientation, or a detected near collision
+crash detection could combine the imu, bike speed, and orientation to recognize a likely crash or bike-down event and generate an emergency event packet containing time, gps position, last known speed, impact magnitude, bike orientation, and the recorded camera footage
+for the hackathon we could show that emergency packet on the mac rather than actually contacting emergency services
+the system could detect road hazards such as potholes, debris, construction, stopped vehicles, damaged pavement, and potentially slippery or poor road conditions, then associate them with gps coordinates
+those hazards could be uploaded anonymously so riders approaching the same location receive warnings before they reach it
+multiple riders could therefore create a shared motorcycle hazard network where one rider discovering a problem benefits everyone coming behind them
+the system could also build a road quality map by combining repeated imu impacts and gps coordinates, so if many motorcycles repeatedly experience a strong vertical acceleration at the same point it can identify a likely pothole or road defect
+that information could be shown on a civic dashboard so cities can see where riders are repeatedly encountering road problems
+we could also collect near-miss information rather than only crashes, using combinations of hard braking, sudden steering, close vehicle detection, and rapid relative movement to identify situations where a collision almost occurred
+aggregated near-miss locations could create a dangerous-intersection heatmap showing places where riders repeatedly experience risky situations even if crashes have not happened yet
+dangerous intersections could then be identified from repeated braking events, collision warnings, close passes, and other rider behavior
+the system could detect cross traffic at intersections and warn if another vehicle appears to be moving into the rider’s path
+it could also identify vehicles behaving unpredictably by watching for repeated lane drifting, rapidly changing distance, or movement toward the motorcycle rather than trying to guess whether a driver is distracted
+the rear camera could distinguish between a vehicle simply existing behind you and one rapidly closing the gap, which makes the warning much more useful than a basic proximity alert
+we could eventually estimate approximate vehicle distance and relative velocity so warnings can say that something is 10 meters behind and approaching quickly rather than only saying that a vehicle exists
+the system could create small directional indicators around the edge of the hud showing where nearby vehicles are located, then expand the relevant camera view only when something becomes important
+group riding could be built in so riders can see the approximate location of the other people in their group, know when somebody was left behind at a light, and receive a warning if another rider unexpectedly stops or crashes
+shared group hazards could also propagate immediately between riders so the first person encountering debris or a stopped vehicle warns everyone behind them
+navigation could eventually become motorcycle-specific instead of simply finding the fastest route, taking into account road quality, reported hazards, construction, dangerous intersections, lighting, curves, and other rider-specific factors
+the route system could compare something like an 18 minute route with several known hazards against a 20 minute route with none and let the rider decide which they want
+curve warnings could combine gps route geometry and current motorcycle speed to warn when you are approaching a sharp curve unusually quickly
+later we could combine camera information, road conditions, speed, and lean information to make those warnings smarter
+the system could eventually recognize temporary events such as crashes, blocked lanes, stalled vehicles, construction, or emergency activity and warn nearby riders
+the entire interface would remain contextual, so most of the time you would only see a tiny amount of information and the glasses would become more detailed only when the situation requires it
+and the overall concept becomes more than smart motorcycle glasses
+it becomes a motorcycle awareness system that sees around the rider, understands what the bike is doing, detects nearby threats, records incidents, helps with navigation, shares hazards with other riders, and produces road safety data that could also be useful to cities

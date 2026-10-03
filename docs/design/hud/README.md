@@ -1,5 +1,20 @@
 # HUD concepts
 
+## Motorcycle feature direction
+
+The user's feature list establishes a motorcycle awareness HUD: quiet by default,
+with signal-driven camera views and prioritized warnings. See the
+[feature brief and demo sequence](feature-brief.md).
+
+![Normal riding HUD](ride-normal-v1.png)
+
+![Left blind-spot HUD](ride-left-blind-spot-v1.png)
+
+These revised concepts were generated with built-in imagegen. Their exact
+[prompts and corrections](motorcycle-prompts.json) are saved alongside them.
+
+## Earlier style explorations
+
 Two visual directions generated with built-in imagegen on 2026-10-03. These are
 design mockups; status, battery, and distance values are illustrative. The workshop
 is context for the overlay, not a proposed camera-video background for the glasses.

@@ -1,5 +1,9 @@
 # Implementation roadmap
 
+The [motorcycle feature brief](design/hud/feature-brief.md) defines the proposed
+HUD states and a staged hackathon demo. UI simulation can proceed alongside the
+hardware milestones below; it does not validate the spatial or transport path.
+
 The four core project folders exist and the Mac synthetic test sender is
 implemented. The Pi and glasses have not yet been tested. Follow the
 [project inventory and creation order](repository-plan.md); each implementation
