@@ -7,6 +7,8 @@ Status: the Mac test sender and a Python voice/LLM sidecar are implemented.
 Voice has offline tests; live cloud/audio setup is pending. Pi applications,
 tracking, and world-anchored rendering are pending. See the [stack](docs/stack.md).
 
+Explore the [HUD concepts](docs/design/hud/README.md): Quiet Spatial and Instrument.
+
 ```text
 cameras / sensors
        |
