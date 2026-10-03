@@ -1,0 +1,22 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+*.local.*
+*.log
+
+# Local captures, generated outputs, and machine-specific state.
+/.local/
+/recordings/
+/artifacts/
+
+# Build/runtime outputs; add tool-specific rules when the stack is selected.
+node_modules/
+.venv/
+__pycache__/
+.pytest_cache/
+.build/
+build/
+dist/
+target/
+CMakeUserPresets.json
