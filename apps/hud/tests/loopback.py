@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--sender", required=True)
     parser.add_argument("--gst-launch", required=True)
+    parser.add_argument("--headless", action="store_true")
     args = parser.parse_args()
 
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as reservation:
@@ -18,17 +19,36 @@ def main():
         port = reservation.getsockname()[1]
 
     receiver_command = [
-        args.gst_launch, "-e", "udpsrc", "address=127.0.0.1", f"port={port}",
+        args.gst_launch,
+        "-e",
+        "udpsrc",
+        "address=127.0.0.1",
+        f"port={port}",
         "caps=application/x-rtp,media=video,encoding-name=H265,payload=96,clock-rate=90000",
-        "!", "rtpjitterbuffer", "latency=20", "drop-on-latency=true",
-        "!", "rtph265depay", "!", "video/x-h265,stream-format=byte-stream,alignment=au",
-        "!", "h265parse", "!", "vtdec_hw",
+        "!",
+        "rtpjitterbuffer",
+        "latency=20",
+        "drop-on-latency=true",
+        "!",
+        "rtph265depay",
+        "!",
+        "video/x-h265,stream-format=byte-stream,alignment=au",
+        "!",
+        "h265parse",
+        "!",
+        "vtdec_hw",
         # Avoid negotiating GLMemory in a headless test without a Cocoa loop.
-        "!", "video/x-raw,format=NV12",
-        "!", "fakesink", "sync=false", "num-buffers=30",
+        "!",
+        "video/x-raw,format=NV12",
+        "!",
+        "fakesink",
+        "sync=false",
+        "num-buffers=30",
     ]
     receiver = subprocess.Popen(
-        receiver_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        receiver_command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
     )
     log = bytearray()
     try:
@@ -46,9 +66,23 @@ def main():
                         raise RuntimeError("Receiver exited before starting")
 
         sender = subprocess.run(
-            [args.sender, "--host", "127.0.0.1", "--port", str(port),
-             "--width", "640", "--height", "360", "--frames", "90"],
-            capture_output=True, text=True, timeout=20,
+            [
+                args.sender,
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(port),
+                "--width",
+                "640",
+                "--height",
+                "360",
+                "--frames",
+                "90",
+            ]
+            + (["--headless"] if args.headless else []),
+            capture_output=True,
+            text=True,
+            timeout=20,
         )
         print(sender.stdout, end="")
         if sender.returncode:

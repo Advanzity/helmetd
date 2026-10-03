@@ -47,6 +47,11 @@ calibrated pose/projection pipeline described in the main roadmap.
 
 ## First implementation slice
 
+The native C++/Metal HUD now provides the base render/encode path. Prove it on
+the Pi and glasses before adding the map. MapLibre Native is a candidate for
+the eventual map integration; this document does not commit to its offscreen
+texture interoperability or a routing provider.
+
 1. Add a small synthetic street mesh and route line to the HUD simulator.
 2. Drive a position marker along a recorded or simulated route; exercise heading,
    turn transitions, lost location, and alert-driven collapse.

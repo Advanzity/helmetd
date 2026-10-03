@@ -3,7 +3,7 @@
 A monorepo for a wearable, world-anchored HUD using a Raspberry Pi 5, a MacBook,
 and XREAL 1S glasses.
 
-Status: the Mac test sender and a Python voice/LLM sidecar are implemented.
+Status: the native Metal HUD, Mac test sender, and Python voice/LLM sidecar are implemented.
 Voice has offline tests; live cloud/audio setup is pending. Pi applications,
 tracking, and world-anchored rendering are pending. See the [stack](docs/stack.md).
 
@@ -33,14 +33,14 @@ path in addition to the video loop.
 ## Projects
 
 One Git repository contains four native core projects plus the Python voice app.
-The HUD test sender and voice/LLM commands are runnable; capture, compute, and
+The HUD preview/streamer and voice/LLM commands are runnable; capture, compute, and
 display document planned responsibilities.
 
 ```text
 apps/
   capture/             Planned: Pi camera/sensor acquisition and uplink
   compute/             Planned: Mac tracking, anchors, and application state
-  hud/                 Runnable: Mac synthetic HEVC test sender
+  hud/                 Mac: native Metal HUD, camera inset, and HEVC streaming
   display/             Planned: Pi stream reception, decoding, and HDMI output
   voice/               Mac: ElevenLabs conversation, alerts, and LLM gateway
 packages/
@@ -61,19 +61,24 @@ docs/
 tools/                 Future setup, replay, and measurement utilities
 ```
 
-## Build and try the Mac sender
+## Build and try the native Mac HUD
 
 ```sh
 brew install cmake ninja pkgconf gstreamer
 cmake --preset mac-debug
 cmake --build --preset mac-debug
 ctest --preset mac-debug
-mkdir -p artifacts
-./build/mac-debug/bin/helmetd-test-sender --output artifacts/test.mp4 --frames 150
+open build/mac-debug/bin/Helmetd.app
 ```
 
-See the [sender README](apps/hud/README.md) for local playback and streaming to
-the Pi. Generated media and build output are ignored by Git.
+The preview has simulated speed/gear, one camera inset, and a triggered rear
+warning. Use Space for the warning, arrows for speed, G for gear, C to stall the
+camera, and T to stall telemetry. The test camera is a moving ball, not a real
+camera capture. The center remains black for the optical HUD background.
+
+See the [HUD README](apps/hud/README.md) for H.264 camera input, recording,
+HEVC streaming to the Pi, local checks, and current limits. Generated media and
+build output are ignored by Git. The Pi/glasses and world anchoring remain untested.
 
 ## Voice and selectable AI providers
 
