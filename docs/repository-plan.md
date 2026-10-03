@@ -4,6 +4,10 @@ Status: four native core project folders are scaffolded; the HUD test sender is
 runnable. The Python voice app and shared LLM package are also implemented, with
 offline tests and live account/audio configuration pending.
 
+Shelby Ride is now imported in `apps/game` with its own npm lockfile. The
+[game-driven demo plan](game-integration.md) covers simulated features and live
+cameras; the game-to-HUD adapter is pending.
+
 The [stack recommendation](stack.md) specifies C++20 core applications, native
 media/rendering libraries, Protobuf contracts, and CMake builds.
 
@@ -20,6 +24,7 @@ remain placeholders with documented responsibilities.
 
 | Project | Runs on | Owns | Produces |
 | --- | --- | --- | --- |
+| `apps/game` | Mac browser | Motorcycle simulation, traffic, road world; future scenario controls | Gameplay rendering; state export pending |
 | `apps/capture` | Pi | Camera acquisition, sensor drivers, acquisition timestamps, uplink | Camera streams and sensor/pose observations |
 | `apps/compute` | Mac | Input ingestion, tracking/fusion, world coordinates, physical anchors, application state | Timestamped poses, anchor updates, and HUD state |
 | `apps/hud` | Mac | Scene presentation, calibrated eye views, HUD graphics, video encoding | Rendered video and matching frame metadata |
@@ -50,6 +55,7 @@ flowchart LR
 ```text
 helmetd/                       One Git repository
   apps/
+    game/                      Shelby Ride browser game and asset sources
     capture/                   Camera/sensor application
     compute/                   Tracking and application state
     hud/                       Rendered graphics and output encoding
@@ -106,7 +112,7 @@ These are questions about scope, not committed directories:
 | Operator dashboard | A separate interface is needed for configuration, live diagnostics, or sessions. |
 | Phone controller | A phone needs its own application and interaction flow. |
 | Microcontroller firmware | A separate MCU actually controls or samples hardware. |
-| Simulator | Replay becomes a substantial standalone application; simple replay starts in `tools/`. |
+| Replay tooling | Recorded-session replay starts in `tools/`; the riding simulator already lives in `apps/game`. |
 | Model training | Custom datasets, training, and evaluation become part of the product. |
 | Website / documentation site | A published site becomes an explicit deliverable. |
 

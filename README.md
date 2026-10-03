@@ -4,6 +4,7 @@ A monorepo for a wearable, world-anchored HUD using a Raspberry Pi 5, a MacBook,
 and XREAL 1S glasses.
 
 Status: the native Metal HUD, Mac test sender, and Python voice/LLM sidecar are implemented.
+The existing Shelby Ride game is imported in `apps/game`; its HUD adapter is pending.
 Voice has offline tests; live cloud/audio setup is pending. Pi applications,
 tracking, and world-anchored rendering are pending. See the [stack](docs/stack.md).
 
@@ -32,12 +33,14 @@ path in addition to the video loop.
 
 ## Projects
 
-One Git repository contains four native core projects plus the Python voice app.
+One Git repository contains four native core projects, the Python voice app,
+and the browser-based motorcycle game.
 The HUD preview/streamer and voice/LLM commands are runnable; capture, compute, and
 display document planned responsibilities.
 
 ```text
 apps/
+  game/                Shelby Ride: simulated motorcycle, traffic, and road world
   capture/             Planned: Pi camera/sensor acquisition and uplink
   compute/             Planned: Mac tracking, anchors, and application state
   hud/                 Mac: native Metal HUD, camera inset, and HEVC streaming
@@ -60,6 +63,17 @@ docs/
   roadmap.md           Ordered milestones with acceptance criteria
 tools/                 Future setup, replay, and measurement utilities
 ```
+
+## Run the motorcycle game
+
+```sh
+npm --prefix apps/game ci
+npm --prefix apps/game run dev -- --port 5173
+```
+
+Open `http://127.0.0.1:5173`. See the [game README](apps/game/README.md) for
+controls and assets, and the [demo integration plan](docs/game-integration.md)
+for connecting gameplay, live cameras, and scripted features to the HUD.
 
 ## Build and try the native Mac HUD
 
@@ -108,5 +122,6 @@ are recorded in [hardware](hardware/README.md).
   run on one computer; see the proposed boundaries in the repository plan.
 - Share protocol contracts first. Keep device-specific implementation in its app.
 - Validate the recommended stack with the tracking and display experiments.
-- Prove one physical anchor before adding object recognition or a large HUD.
+- Build hackathon features from gameplay and scripted events; validate physical
+  world anchoring as a separate capability.
 - Keep captured media and machine-specific configuration out of Git.
