@@ -18,6 +18,10 @@ route, vehicle, and warnings are illustrative. The road is scene context; only
 the HUD graphics and camera inset would be rendered into the glasses. The white
 footer belongs to the design presentation and is excluded from the runtime HUD.
 
+The [additional state gallery](extended-states.md) now covers rear threat,
+reported hazard, crash countdown, and group riding. A separate
+[civic dashboard concept](../civic/README.md) covers aggregate reporting.
+
 ## HUD states
 
 | State / trigger | Display | Exit / failure behavior |

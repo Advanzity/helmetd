@@ -13,6 +13,20 @@ with signal-driven camera views and prioritized warnings. See the
 These revised concepts were generated with built-in imagegen. Their exact
 [prompts and corrections](motorcycle-prompts.json) are saved alongside them.
 
+## More feature states
+
+| Concept | Main interaction |
+| --- | --- |
+| [Rear threat](ride-rear-threat-v1.png) | Directional warning, rear-camera inset, recording status |
+| [Road hazard](ride-road-hazard-v1.png) | Reported hazard, distance, source, and age |
+| [Crash countdown](ride-crash-countdown-v1.png) | Cancellable incident-report demo and recording status |
+| [Group riding](ride-group-v1.png) | Fellow-rider positions and a falling-behind notice |
+| [Civic dashboard](../civic/civic-dashboard-v1.png) | Separate desktop map of hazards and near-miss hotspots |
+
+Open the [additional HUD gallery](extended-states.md) for full images and design
+notes, or the [civic dashboard brief](../civic/README.md). All five were created
+with built-in imagegen; their [prompts](../feature-concepts-prompts.json) are saved.
+
 ## Earlier style explorations
 
 Two visual directions generated with built-in imagegen on 2026-10-03. These are
