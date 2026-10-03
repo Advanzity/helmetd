@@ -1,14 +1,15 @@
 # Hardware
 
-Planning inventory, 2026-10-03:
+Planning inventory, 2026-10-03. See the [Pi bench record](pi-bench-2026-10-03.md)
+for live hardware observations and verified video output.
 
 | Item | Status |
 | --- | --- |
-| Raspberry Pi 5 | Selected for capture and display; RAM, OS, power, and cooling TBD. |
+| Raspberry Pi 5 | Connected: approximately 4 GiB, Debian 13.7 arm64; hardware HEVC/Wayland display verified. Power/cooling models TBD. |
 | MacBook | Selected for processing and rendering; chip and macOS version TBD. |
 | XREAL 1S | Model confirmed by the user. Firmware TBD. |
 | HDMI-to-USB-C adapter | Available, confirmed by the user. Model, power, supported modes, and USB data path unverified. |
-| Cameras / sensors | Models, interfaces, mounting, and rates TBD. |
+| Cameras / sensors | Available per user; no USB or CSI camera enumerated on the Pi during bring-up. Models/modes TBD. |
 | XREAL Eye / companion device | Availability not confirmed. |
 | Wi-Fi network | AP/hotspot arrangement and measured performance TBD. |
 

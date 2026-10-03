@@ -1,8 +1,9 @@
 # Repository and project plan
 
-Status: four native core project folders are scaffolded; the HUD test sender is
-runnable. The Python voice app and shared LLM package are also implemented, with
-offline tests and live account/audio configuration pending.
+Status: the native Mac HUD/test sender, Python voice app, and shared LLM package
+are runnable. Pi bench media tools use Python/GStreamer; the hardware HEVC
+receiver and fullscreen display are verified. Physical camera capture, compute,
+and live voice account/audio configuration remain pending.
 
 Shelby Ride is now imported in `apps/game` with its own npm lockfile. The
 [game-driven demo plan](game-integration.md) covers simulated features and live
@@ -17,8 +18,9 @@ Use one Git repository, `helmetd`, with several runnable projects. A project is
 a build/run boundary inside the repository; a computer is a deployment target.
 The same computer can run more than one project.
 
-The folders follow the component layout below. Capture, compute, and display
-remain placeholders with documented responsibilities.
+The folders follow the component layout below. Compute remains a placeholder;
+capture has a bench utility awaiting camera hardware validation, and display
+has a receiver and persistent user service.
 
 ## Proposed core projects
 
@@ -28,7 +30,7 @@ remain placeholders with documented responsibilities.
 | `apps/capture` | Pi | Camera acquisition, sensor drivers, acquisition timestamps, uplink | Camera streams and sensor/pose observations |
 | `apps/compute` | Mac | Input ingestion, tracking/fusion, world coordinates, physical anchors, application state | Timestamped poses, anchor updates, and HUD state |
 | `apps/hud` | Mac | Scene presentation, calibrated eye views, HUD graphics, video encoding | Rendered video and matching frame metadata |
-| `apps/display` | Pi | Downlink reception, decoding, presentation, stale-frame handling | HDMI output to the XREAL adapter |
+| `apps/display` | Pi | Hardware HEVC reception, fullscreen Wayland presentation, persistent service | Desktop-session display output; holds last frame during demo receive gaps |
 | `apps/voice` | Mac | ElevenLabs conversation, standalone TTS, authenticated LLM bridge | Local speech, streamed agent responses |
 | `packages/llm` | Mac | Provider selection and SDK adapters; shared by gateway and text CLI | Text deltas from OpenAI, Gemini, or Claude |
 

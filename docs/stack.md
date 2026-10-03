@@ -1,22 +1,23 @@
 # Recommended stack
 
 Status: native Metal HUD with camera input and HEVC output, synthetic Mac sender,
-and voice/LLM sidecar implemented. Remaining components and the Pi hardware path
-are pending. The local Mac reports Apple M4
+and voice/LLM sidecar implemented. The Pi hardware HEVC receiver and fullscreen
+Wayland output are verified; real camera capture and tracking remain pending.
+The local Mac reports Apple M4
 with 16 GiB RAM; this plan
 assumes it is also the intended rendering machine.
 
 | Project / layer | Recommendation |
 | --- | --- |
-| Pi OS | Raspberry Pi OS Lite, 64-bit |
-| Capture on Pi | C++20 + libcamera + GStreamer |
+| Pi OS | Tested: Debian 13, 64-bit, with labwc/Wayland desktop |
+| Capture on Pi | Bench: Python/PyGObject + GStreamer; native C++20/libcamera remains a later option |
 | Compute on Mac | C++20 + OpenCV 4 + Eigen |
 | HUD on Mac | C++20 core + Metal; Objective-C++ bridge to Metal/AppKit/CoreText |
 | HUD encoding | GStreamer using Apple's VideoToolbox HEVC hardware encoder |
-| Display on Pi | C++20 + GStreamer, V4L2 stateless HEVC decoder, DRM/KMS output |
+| Display on Pi | Python/PyGObject + GStreamer, V4L2 stateless HEVC decoder, Wayland output |
 | Shared messages | Protocol Buffers with generated C++ bindings |
 | Build and checks | CMake presets + Ninja + CTest; clang-format and clang-tidy |
-| Pi process startup | systemd, after the bench applications work |
+| Pi process startup | systemd user service tied to the graphical session |
 | Voice on Mac | Python 3.12–3.14 + ElevenLabs SDK; PyAudio/PortAudio for local audio |
 | LLM reasoning | Shared Python adapters: OpenAI Responses, Google Gen AI, Anthropic Messages |
 | Voice gateway | FastAPI + Uvicorn; authenticated Chat Completions SSE endpoint |
@@ -56,11 +57,12 @@ Sources: [Pi camera software](https://www.raspberrypi.com/documentation/computer
 [Pi 5 specification](https://www.raspberrypi.com/products/raspberry-pi-5/),
 [libcamera GStreamer integration](https://libcamera.org/getting-started.html).
 
-The candidate downlink elements are `vtenc_h265_hw`, `rtph265pay`,
-`rtph265depay`, `v4l2slh265dec`, and `kmssink`, with parsing/session management
-as required. Availability and buffer compatibility on the actual Pi OS remain
-unverified. Log actual encoder/decoder selection; do not silently count a
-software fallback as passing hardware validation.
+The verified downlink uses `vtenc_h265_hw`, `rtph265pay`, `rtph265depay`,
+`h265parse`, `v4l2slh265dec`, and `waylandsink`, with DMA-BUF frames from the Pi
+hardware decoder. The receiver waits for a keyframe before decoding a joined
+stream and uses a larger jitter buffer for the bench Wi-Fi link. The persistent
+demo keeps its last frame during receive gaps. `kmssink`/DRM operation remains
+unverified. Decoder selection is explicit, without a software fallback.
 
 The first Metal-to-GStreamer bridge is implemented with GPU completion, a blit
 to a shared readback buffer, CPU copies, BGRA appsrc, NV12 conversion, and the

@@ -7,8 +7,9 @@ The camera is a moving test ball by default; it can also receive baseline H.264
 over UDP. No Mac webcam or microphone is opened.
 
 This is the first bench implementation. Actual CAN telemetry, detection-driven
-warnings, world anchoring, maps, voice integration, and the Pi/glasses test remain
-pending. Simulated values are labeled on the HUD. Black pixels are the optical
+warnings, world anchoring, maps, voice integration, and optical latency testing
+remain pending. Pi hardware HEVC decoding and fullscreen Wayland output have
+been verified. Simulated values are labeled on the HUD. Black pixels are the optical
 background, not a camera view of the forward road.
 
 ## Build and open
@@ -59,19 +60,28 @@ window. `--camera none` exercises the unavailable-camera state.
 requires even 16:9 dimensions from 640x360 to 1920x1080. The default is 720p30,
 4000 kbps. See `--help` for every option.
 
-## Send the HUD to the Pi when it is ready
+## Keep the HUD on the Pi display
 
 Start a matching Pi receiver first, then use its real hostname or IP:
 
 ```sh
-./build/mac-debug/bin/helmetd-hud --host helmetd-pi.local --port 5000
+open -n build/mac-debug/bin/Helmetd.app --args \
+  --host helmetd-pi.local --port 5000 --frames 0
 ```
 
-Downlink: HEVC RTP/UDP, payload 96, 90000 Hz clock. The proposed Pi path remains
-`rtph265depay ! h265parse ! v4l2slh265dec ! kmssink`; its plugin availability,
-DRM permissions, buffer compatibility, adapter mode, and optical output must be
-verified on the actual device. The Pi display service and disconnect watchdog
-are not implemented. Successful sending cannot confirm receipt or display.
+Launching the app through macOS keeps it independent of the terminal or chat
+command session. `--frames 0` streams continuously until the app is closed.
+Keep the Pi receiver under its own process manager too; an interrupted SSH
+session must not remove the HUD and expose the desktop. Use the terminal
+executable directly for bounded diagnostics and captured metrics.
+
+Downlink: HEVC RTP/UDP, payload 96, 90000 Hz clock. The verified bench Pi path
+uses `rtph265depay ! h265parse ! v4l2slh265dec ! waylandsink`, with DMA-BUF
+hardware decoding inside the existing desktop session. The
+[Pi receiver and user service](../display/README.md) wait for a keyframe when
+joining the stream and retain the last image during receive gaps. That keeps
+the demo visible; a retained image is not fresh telemetry. DRM/KMS output and
+optical latency remain untested. Successful sending alone cannot confirm receipt.
 
 For a local Mac receiver, start this in a second terminal and send to
 `--host 127.0.0.1`:
@@ -160,7 +170,9 @@ CTest exercises the actual local media stack; it does not mock Metal or codecs:
 
 The baseline transport tool remains available as `helmetd-test-sender`; see
 [its instructions](test-sender.md). Tests were run on Apple M4/macOS 15.6.1,
-AppleClang 17 and Homebrew GStreamer 1.28.7. Physical Pi/XREAL validation is pending.
+AppleClang 17 and Homebrew GStreamer 1.28.7. A separate Pi 5 bench test verified
+HEVC hardware decode and fullscreen Wayland output. Camera hardware, optical
+alignment, and motion-to-photon latency remain unverified.
 
 Repeated local runs exposed an intermittent `VTDecompressionSessionCreate
 returned -4` startup failure in the original synthetic sender's HEVC loopback.
@@ -172,3 +184,30 @@ API references: [Metal shader compilation](https://developer.apple.com/documenta
 [GStreamer appsrc](https://gstreamer.freedesktop.org/documentation/applib/gstappsrc.html),
 [GStreamer appsink](https://gstreamer.freedesktop.org/documentation/applib/gstappsink.html),
 [GStreamer 1.28.7 VideoToolbox decoder](https://github.com/GStreamer/gstreamer/blob/1.28.7/subprojects/gst-plugins-bad/sys/applemedia/vtdec.c).
+
+## XREAL optical transparency
+
+The renderer clears every frame to RGB zero. A fullscreen Pi capture on
+2026-10-03 measured 97.45% exact-black pixels in normal mode with the synthetic
+camera. This measures image coverage, not the lenses' optical transmission.
+
+For the XREAL 1S, use the clearest electrochromic lens setting and adjust display
+brightness to the lowest comfortably readable level. On current One Series
+firmware, `+/-` opens the quick panel and `X` selects brightness or electrochromic
+dimming. These are separate controls: reducing screen brightness reduces emitted
+image light; lens dimming controls the view through the glasses. See the
+[official controls guide](https://tutorials.xreal.com/docs/glasses/one-series/quick-guide/)
+and [1S specifications](https://tutorials.xreal.com/docs/glasses/one-series/spec/).
+
+Recommended next rendering changes, not yet applied to the live stream:
+
+- Remove the tinted unavailable-camera and warning panel fills; keep pure black
+  behind text and thin warning accents.
+- Reduce the size and brightness of secondary labels and diagnostic text.
+- Show camera windows on demand or for relevant alerts. A real video frame can
+  light up most of that rectangle, unlike the mostly black synthetic test feed.
+- Keep important speed/gear/alert text readable while leaving the center clear.
+
+Changing desktop-window opacity is not part of this path: the Pi receives a
+fully composed RGB video stream, so the renderer must produce the desired black
+pixels and dimmed foreground colors before encoding.

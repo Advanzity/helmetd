@@ -1,0 +1,17 @@
+[Unit]
+Description=Helmetd fullscreen Pi HUD receiver
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=%t
+ExecStart=/usr/bin/python3 %h/helmetd/apps/display/receive.py
+Restart=always
+RestartSec=2
+StandardOutput=append:%h/.local/state/helmetd-display.log
+StandardError=append:%h/.local/state/helmetd-display.log
+
+[Install]
+WantedBy=graphical-session.target

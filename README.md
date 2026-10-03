@@ -5,8 +5,10 @@ and XREAL 1S glasses.
 
 Status: the native Metal HUD, Mac test sender, and Python voice/LLM sidecar are implemented.
 The existing Shelby Ride game is imported in `apps/game`; its HUD adapter is pending.
-Voice has offline tests; live cloud/audio setup is pending. Pi applications,
-tracking, and world-anchored rendering are pending. See the [stack](docs/stack.md).
+The Pi hardware HEVC receiver and fullscreen display are verified, with a user
+service to keep the receiver running independently of SSH. Voice has offline
+tests; live cloud/audio setup, physical camera capture, tracking, and
+world-anchored rendering are pending. See the [stack](docs/stack.md).
 
 Explore the [motorcycle HUD concepts](docs/design/hud/README.md) and
 [feature brief](docs/design/hud/feature-brief.md), including normal riding and
@@ -33,18 +35,18 @@ path in addition to the video loop.
 
 ## Projects
 
-One Git repository contains four native core projects, the Python voice app,
-and the browser-based motorcycle game.
-The HUD preview/streamer and voice/LLM commands are runnable; capture, compute, and
-display document planned responsibilities.
+One Git repository contains the native Mac HUD, Pi media tools, planned compute
+component, Python voice app, and browser-based motorcycle game. The Pi tools
+use Python/GStreamer for bench bring-up; physical camera capture still needs
+validation with connected cameras.
 
 ```text
 apps/
   game/                Shelby Ride: simulated motorcycle, traffic, and road world
-  capture/             Planned: Pi camera/sensor acquisition and uplink
+  capture/             Pi camera/test-source uplink; physical cameras pending
   compute/             Planned: Mac tracking, anchors, and application state
   hud/                 Mac: native Metal HUD, camera inset, and HEVC streaming
-  display/             Planned: Pi stream reception, decoding, and HDMI output
+  display/             Pi hardware HEVC reception and fullscreen Wayland output
   voice/               Mac: ElevenLabs conversation, alerts, and LLM gateway
 packages/
   llm/                 OpenAI, Google Gemini, and Anthropic Claude adapters
@@ -92,7 +94,9 @@ camera capture. The center remains black for the optical HUD background.
 
 See the [HUD README](apps/hud/README.md) for H.264 camera input, recording,
 HEVC streaming to the Pi, local checks, and current limits. Generated media and
-build output are ignored by Git. The Pi/glasses and world anchoring remain untested.
+build output are ignored by Git. Pi hardware decoding and fullscreen output
+are verified; optical latency and world anchoring remain untested. See the
+[Pi receiver](apps/display/README.md) for persistent display setup.
 
 ## Voice and selectable AI providers
 
