@@ -1,7 +1,8 @@
 # Repository and project plan
 
-Status: four core project folders are scaffolded; the HUD test sender is the
-first runnable target. Additional projects are still being inventoried.
+Status: four native core project folders are scaffolded; the HUD test sender is
+runnable. The Python voice app and shared LLM package are also implemented, with
+offline tests and live account/audio configuration pending.
 
 The [stack recommendation](stack.md) specifies C++20 core applications, native
 media/rendering libraries, Protobuf contracts, and CMake builds.
@@ -23,6 +24,8 @@ remain placeholders with documented responsibilities.
 | `apps/compute` | Mac | Input ingestion, tracking/fusion, world coordinates, physical anchors, application state | Timestamped poses, anchor updates, and HUD state |
 | `apps/hud` | Mac | Scene presentation, calibrated eye views, HUD graphics, video encoding | Rendered video and matching frame metadata |
 | `apps/display` | Pi | Downlink reception, decoding, presentation, stale-frame handling | HDMI output to the XREAL adapter |
+| `apps/voice` | Mac | ElevenLabs conversation, standalone TTS, authenticated LLM bridge | Local speech, streamed agent responses |
+| `packages/llm` | Mac | Provider selection and SDK adapters; shared by gateway and text CLI | Text deltas from OpenAI, Gemini, or Claude |
 
 These are proposed project boundaries, not four network services. Capture and
 display need separate launch paths for bench testing. Compute and HUD need a
@@ -51,7 +54,9 @@ helmetd/                       One Git repository
     compute/                   Tracking and application state
     hud/                       Rendered graphics and output encoding
     display/                   Video receiver and glasses output
+    voice/                     Python voice sidecar and LLM gateway
   packages/
+    llm/                       Provider-independent Python reasoning interface
     protocol/
       schemas/                 Wire messages and local component contracts
       examples/                Small shared validation fixtures
@@ -82,6 +87,10 @@ Add a code library only when two implemented projects need the same logic and
 can actually consume it. Keep sensor drivers with capture, tracking algorithms
 with compute, and rendering code with HUD until a concrete reuse need appears.
 Avoid a generic `shared` or `utils` directory with unclear ownership.
+
+`packages/llm` is an explicit shared boundary requested for interchangeable AI
+providers. The voice gateway and standalone text CLI use it. Python packages are
+managed by the root uv workspace; native targets keep the existing CMake build.
 
 All four applications depend on the agreed contracts. They should not import
 each other's private source. Use in-process calls, local IPC, or network

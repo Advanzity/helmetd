@@ -1,0 +1,32 @@
+[project]
+name = "helmetd-workspace"
+version = "0.1.0"
+requires-python = ">=3.12,<3.15"
+dependencies = ["helmetd-voice"]
+
+[project.optional-dependencies]
+audio = ["helmetd-voice[audio]"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "httpx>=0.28,<1", "ruff>=0.12,<1"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["apps/voice", "packages/llm"]
+
+[tool.uv.sources]
+helmetd-voice = { workspace = true }
+helmetd-llm = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["packages/llm/tests", "apps/voice/tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

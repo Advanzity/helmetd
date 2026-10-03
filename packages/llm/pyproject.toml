@@ -1,0 +1,18 @@
+[project]
+name = "helmetd-llm"
+version = "0.1.0"
+description = "Streaming text generation across Helmetd's AI providers"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+  "openai>=2,<3",
+  "anthropic>=0.80,<1",
+  "google-genai>=1,<3",
+  "python-dotenv>=1,<2",
+]
+
+[project.scripts]
+helmetd-llm = "helmetd_llm.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

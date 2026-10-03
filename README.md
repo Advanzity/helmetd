@@ -3,8 +3,9 @@
 A monorepo for a wearable, world-anchored HUD using a Raspberry Pi 5, a MacBook,
 and XREAL 1S glasses.
 
-Status: the Mac test sender is implemented. Pi applications, tracking, and
-world-anchored rendering are pending. See the [native stack](docs/stack.md).
+Status: the Mac test sender and a Python voice/LLM sidecar are implemented.
+Voice has offline tests; live cloud/audio setup is pending. Pi applications,
+tracking, and world-anchored rendering are pending. See the [stack](docs/stack.md).
 
 ```text
 cameras / sensors
@@ -27,8 +28,9 @@ path in addition to the video loop.
 
 ## Projects
 
-One Git repository contains four core projects. Only the HUD test sender is
-currently runnable; the other app folders document planned responsibilities.
+One Git repository contains four native core projects plus the Python voice app.
+The HUD test sender and voice/LLM commands are runnable; capture, compute, and
+display document planned responsibilities.
 
 ```text
 apps/
@@ -36,7 +38,9 @@ apps/
   compute/             Planned: Mac tracking, anchors, and application state
   hud/                 Runnable: Mac synthetic HEVC test sender
   display/             Planned: Pi stream reception, decoding, and HDMI output
+  voice/               Mac: ElevenLabs conversation, alerts, and LLM gateway
 packages/
+  llm/                 OpenAI, Google Gemini, and Anthropic Claude adapters
   protocol/            Shared wire contracts and coordinate conventions
     schemas/
     examples/
@@ -66,6 +70,23 @@ mkdir -p artifacts
 
 See the [sender README](apps/hud/README.md) for local playback and streaming to
 the Pi. Generated media and build output are ignored by Git.
+
+## Voice and selectable AI providers
+
+Helmetd owns reasoning; ElevenLabs handles speech and conversational turn taking.
+The provider is selectable through configuration, with no renderer changes.
+
+```sh
+uv sync --locked
+cp -n .env.example .env
+# Fill in the chosen provider's key/model in .env, then:
+uv run helmetd-llm "Hello" --provider openai
+uv run pytest
+```
+
+See [voice setup](apps/voice/README.md) for live conversation, spoken alerts,
+Mac audio dependencies, and the authenticated cloud-to-Mac endpoint required
+by ElevenLabs. See [the LLM package](packages/llm/README.md) for provider settings.
 
 Start with the [repository plan](docs/repository-plan.md),
 [architecture](docs/architecture.md), and

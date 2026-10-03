@@ -16,10 +16,20 @@ assumes it is also the intended rendering machine.
 | Shared messages | Protocol Buffers with generated C++ bindings |
 | Build and checks | CMake presets + Ninja + CTest; clang-format and clang-tidy |
 | Pi process startup | systemd, after the bench applications work |
+| Voice on Mac | Python 3.12–3.14 + ElevenLabs SDK; PyAudio/PortAudio for local audio |
+| LLM reasoning | Shared Python adapters: OpenAI Responses, Google Gen AI, Anthropic Messages |
+| Voice gateway | FastAPI + Uvicorn; authenticated Chat Completions SSE endpoint |
+| Python workspace | uv workspace + uv.lock; pytest and Ruff |
 
 The native libraries fit a C++ core and give us direct control over capture,
 buffering, tracking, and rendering. The tradeoff is more native rendering work
 and a Mac-specific HUD. Keep rendering limited to the product's actual graphics.
+
+The [voice sidecar](../apps/voice/README.md) runs separately from the C++ core.
+Helmetd chooses the LLM provider and model; ElevenLabs provides speech. Its cloud
+agent calls an authenticated HTTPS route to the Mac gateway. Local microphone and
+audio output are implemented; the Pi audio link and automatic HUD alerts remain
+future integration. Provider switching takes effect when the gateway restarts.
 
 ## Media paths to validate
 
