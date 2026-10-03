@@ -22,10 +22,16 @@ These revised concepts were generated with built-in imagegen. Their exact
 | [Crash countdown](ride-crash-countdown-v1.png) | Cancellable incident-report demo and recording status |
 | [Group riding](ride-group-v1.png) | Fellow-rider positions and a falling-behind notice |
 | [Civic dashboard](../civic/civic-dashboard-v1.png) | Separate desktop map of hazards and near-miss hotspots |
+| [3D mini-map](ride-3d-minimap-v1.png) | Compact route geometry, next maneuver, and reported hazards |
+| [3D route overview](ride-3d-overview-v1.png) | Expanded stationary view with route alternatives and group position |
 
 Open the [additional HUD gallery](extended-states.md) for full images and design
 notes, or the [civic dashboard brief](../civic/README.md). All five were created
 with built-in imagegen; their [prompts](../feature-concepts-prompts.json) are saved.
+
+The [3D map brief](3d-map.md) explains the compact and expanded navigation concepts,
+their priority rules, and the distinction from world-anchored road graphics.
+Its [generation prompts](3d-map-prompts.json) are saved separately.
 
 ## Earlier style explorations
 

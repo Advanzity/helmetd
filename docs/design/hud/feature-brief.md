@@ -21,6 +21,8 @@ footer belongs to the design presentation and is excluded from the runtime HUD.
 The [additional state gallery](extended-states.md) now covers rear threat,
 reported hazard, crash countdown, and group riding. A separate
 [civic dashboard concept](../civic/README.md) covers aggregate reporting.
+The [3D map concepts](3d-map.md) add an optional compact route map and a stationary
+route-comparison view, both distinct from calibrated world-anchored road graphics.
 
 ## HUD states
 
