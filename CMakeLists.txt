@@ -10,6 +10,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GSTREAMER REQUIRED IMPORTED_TARGET gstreamer-1.0>=1.22)
 
 if(APPLE)
+  add_subdirectory(apps/compute)
   add_subdirectory(apps/hud)
 else()
   message(STATUS "The current test sender requires macOS VideoToolbox. Pi targets are pending.")
