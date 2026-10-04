@@ -1,0 +1,12 @@
+[Unit]
+Description=Helmetd XREAL HDMI audio receiver
+After=pipewire.service wireplumber.service
+
+[Service]
+Environment=XDG_RUNTIME_DIR=%t
+ExecStart=/usr/bin/gst-launch-1.0 -q udpsrc port=5010 caps="application/x-rtp,media=audio,encoding-name=L16,clock-rate=48000,channels=1,payload=98" ! rtpjitterbuffer latency=100 drop-on-latency=true ! rtpL16depay ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=2 ! volume volume=0.4 ! alsasink device=plughw:CARD=vc4hdmi0,DEV=0 sync=false
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

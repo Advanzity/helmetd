@@ -1,0 +1,14 @@
+[Unit]
+Description=Helmetd USB camera uplink to the Mac
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Environment=HELMETD_CAMERA_DEVICE=/dev/video0
+EnvironmentFile=%h/.config/helmetd/capture.env
+ExecStart=/usr/bin/python3 %h/helmetd/apps/capture/capture.py --source usb --device ${HELMETD_CAMERA_DEVICE} --usb-format mjpeg --width 640 --height 360 --fps 30 --bitrate 900 --host ${HELMETD_MAC_HOST} --port 5002
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
