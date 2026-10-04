@@ -40,3 +40,15 @@ test('rendered terrain triangles cannot protrude through the road',()=>{
  assert.equal(geometry.getAttribute('uv').count,p.count);
  assert.equal(geometry.getAttribute('normal').count,p.count);geometry.dispose();
 });
+
+
+test('road textures share world coordinates across adjoining segments',async()=>{
+ const {roadRibbon}=await import('../src/world.js');
+ const a=roadRibbon([[0,0,0],[0,20,0]],6),b=roadRibbon([[0,20,0],[0,40,0]],6);
+ const auv=a.getAttribute('uv'),buv=b.getAttribute('uv');
+ for(let side=0;side<2;side++){
+  assert.equal(auv.getX(2+side),buv.getX(side));
+  assert.equal(auv.getY(2+side),buv.getY(side));
+ }
+ a.dispose();b.dispose();
+});
