@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="helmetd-token" content="__HELMETD_TOKEN__">
+  <title>Helmetd · Ride</title>
+  <link rel="stylesheet" href="/assets/nearby.css">
+  <link rel="stylesheet" href="/assets/leaflet.css">
+  <link rel="stylesheet" href="/assets/maplibre-gl.css">
+</head>
+<body><main>
+  <header class="app-header"><a class="brand" href="#navigation" aria-label="Helmetd navigation"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 23V15a10 10 0 0 1 20 0v8H6Z"/><path d="M17 13h10M17 18h10M8 27h15"/></svg><span>helmetd<span class="brand-dot">.</span></span></a><nav aria-label="Main navigation"><a class="nav-current" href="#navigation">Explore</a><a class="talk-link" href="#voice"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8v4m4-8v12m4-10v8m4-11v14m3-9v4"/></svg>Talk</a></nav></header>
+  <section id="navigation" aria-label="Nearby motorcycle navigation">
+    <div class="nav-heading"><div><span class="eyebrow">RIDE PLANNER</span><h1>Nearby<span>.</span></h1></div><span class="mode-label"><span class="mode-dot"></span> MOTORCYCLE</span></div>
+    <div class="location-bar"><span id="location-status" role="status">Location is off</span><div><button id="locate">Use my location</button><button id="stop-location" hidden>Stop sharing</button></div></div>
+    <form id="search-form"><svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="place-query" aria-label="Search nearby places" placeholder="Where do you want to go?" maxlength="160"><button id="search" type="submit" disabled>Find <span aria-hidden="true">↗</span></button></form>
+    <div class="categories" aria-label="Nearby categories"><button data-category="fuel" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V4h9v16M3 20h13M5 10h9m0-5 5 4v7a2 2 0 0 0 4 0v-5l-4-4"/></svg>Fuel</button><button data-category="coffee" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12v7a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8Zm12 1h2a3 3 0 0 1 0 6h-2M7 3v2m5-2v2"/></svg>Coffee</button><button data-category="food" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3v7m-3-7v5a3 3 0 0 0 6 0V3M6 11v10M18 3v18m0-18c-5 4-5 10 0 10"/></svg>Food</button><button data-category="parking" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>Parking</button></div>
+    <div class="ride-workspace"><div class="map-area">
+      <div class="map-toolbar"><div class="map-styles" role="group" aria-label="Map view"><button data-map-style="holo" aria-pressed="true" disabled>Holo</button><button data-map-style="earth" aria-pressed="false" disabled>Earth</button><button data-map-style="streets" aria-pressed="false" disabled>Streets</button></div><div class="map-view-actions"><button id="map-dimension" aria-pressed="true" aria-label="Switch to 2D map">3D</button><button id="map-center" disabled aria-label="Center map on my location" title="Center on my location"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="1"/></svg></button><button id="map-expand" aria-pressed="false" disabled>Expand</button></div></div>
+      <div id="map" aria-label="Nearby map"><div class="map-placeholder">Your map appears after you share your location.</div></div><div class="map-caption"><span id="map-state">Earth imagery · USGS</span><span id="nav-hud">Checking HUD…</span></div><div class="camera-controls"><span id="map-camera">3D EARTH</span><div id="map-3d-controls" aria-label="3D camera controls"><button id="map-tilt" disabled>Tilt</button><button id="map-rotate" disabled>Rotate ↻</button><button id="map-globe" disabled>Globe</button><button id="map-route" disabled>Route</button></div></div><div id="map-ground-controls"><div class="ground-controls"><label for="map-relief">Ground relief <select id="map-relief" disabled><option value="1">1× · True scale</option><option value="3" selected>3× · Enhanced</option><option value="6">6× · Strong</option></select></label><button id="map-terrain" disabled>Terrain view</button></div><p id="map-elevation">Loading ground elevation…</p></div><p id="map-help">Control-drag to tilt and rotate. Adjust relief to emphasize terrain.</p></div>
+      <section class="route-info" aria-label="Route details"><div class="route-heading"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 19 7-15 7 15-7-3Z"/></svg><span id="nav-state" class="eyebrow">Ready to explore</span></div><h2 id="nav-destination">Find your next stop.</h2><p class="route-origin">From your device location</p><div class="metrics"><div><strong id="nav-time">—</strong><span>Estimated time</span></div><div><strong id="nav-distance">—</strong><span>Road distance</span></div></div>
+        <label class="preference-label">Route preference<select id="preference"><option value="fastest">Fastest</option><option value="avoid_highways">Prefer local roads</option></select></label><p id="route-note" class="route-note">Choose a nearby place to preview a motorcycle route.</p>
+        <div class="nav-actions"><button id="nav-start" class="primary" hidden>Start guidance</button><button id="nav-dismiss" hidden>Dismiss preview</button><button id="nav-pause" hidden>Pause guidance</button><button id="nav-reroute" hidden>Reroute</button><button id="nav-cancel" hidden>Cancel route</button><button id="nav-remove-stop" hidden>Remove stop</button></div>
+        <div class="ride-audio-controls"><button id="nav-audio" aria-pressed="false">Enable spoken guidance</button><button id="nav-repeat" disabled>Repeat turn</button><button id="nav-audio-test">Check audio</button><p id="nav-audio-status" role="status">Spoken directions &amp; road alerts</p></div>
+        <div class="turn-cue"><span id="turn-arrow" aria-hidden="true">↗</span><div><span id="turn-distance">Next turn</span><p id="turn-instruction">Guidance follows your device location.</p></div></div>
+      </section>
+    </div>
+    <div id="nav-notice" class="nav-notice" role="status">Use your location to find places nearby.</div>
+    <section class="hazards-section" aria-label="Road reports">
+      <div class="results-heading"><h2>Road reports<span id="hazard-count" class="result-count">0</span></h2></div>
+      <p id="hazard-feed-status" class="small">Connecting to the trusted-rider feed…</p>
+      <form id="hazard-form"><label>Report<select id="hazard-kind"><option value="debris">Debris</option><option value="pothole">Pothole</option><option value="blocked_lane">Blocked lane</option><option value="standing_water">Standing water</option></select></label><label>Lane<select id="hazard-lane"><option value="unknown">Unspecified</option><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option><option value="shoulder">Shoulder</option></select></label><button id="hazard-save" disabled>Save report here</button></form>
+      <p id="hazard-notice" class="small" role="status">Say “Report debris in the right lane.” A fresh location is required. Reports expire after 15 minutes.</p>
+      <ul id="hazard-results"><li class="empty">No nearby reports loaded.</li></ul>
+      <p class="small">Rider observations, unverified. No reports does not mean a clear road.</p>
+    </section>
+    <dialog id="hazard-share-dialog" aria-labelledby="hazard-share-title"><h2 id="hazard-share-title">Share this road report?</h2><p>Its approximate location, lane, time and wallet address will be public on Solana devnet. Expiry hides the alert but does not erase the public record.</p><div class="controls"><button id="hazard-share-cancel">Keep local</button><button id="hazard-share-confirm" class="primary">Share on devnet</button></div></dialog>
+    <section class="places-section"><div class="results-heading"><h2>Places around you<span id="result-count" class="result-count">0</span></h2><span>Nearby · Straight-line distance</span></div><ul id="place-results"><li class="empty">Fuel, coffee, food and parking around you.</li></ul></section>
+  </section>
+  <details class="data-details"><summary>Location &amp; map data</summary><p class="privacy-note">Your location is used by Photon, Overpass and Valhalla to find places and routes. Your map area loads from USGS or OpenStreetMap, Mapterhorn terrain and OpenFreeMap buildings. Building heights may be estimated; imagery is not live. Coordinates stay out of voice context. Hazard reports save approximate locations locally for 15 minutes; sharing publishes them permanently to Solana devnet.</p></details>
+  <section class="helmet-controls" aria-label="Helmet camera controls">
+    <h2>Helmet controls</h2>
+    <div class="helmet-buttons"><button id="demo-sequence">Demo ride</button><button id="demo-sequence-pause" disabled>Pause</button><button id="demo-sequence-stop" disabled>Stop</button><button id="recover-helmet">Start / recover</button><button id="check-helmet">Check readiness</button></div>
+    <p id="sequence-status" role="status" class="small">Guided visual preview · does not change your route.</p>
+    <p id="readiness-status" role="status" class="small"></p>
+    <details><summary>Preview alerts</summary>
+    <p class="small">Five-second visual previews. Real detections take priority.</p>
+    <div class="helmet-buttons"><button data-alert-preview="left">Left vehicle</button><button data-alert-preview="right">Right vehicle</button><button data-alert-preview="rear">Vehicle behind</button><button data-alert-preview="person">Person ahead</button><button data-alert-preview="message">Notification</button><button data-alert-preview="off">Stop preview</button></div>
+    <p id="alert-preview-status" role="status" class="small"></p></details>
+    <button id="save-video">Save last 30 seconds</button><span id="save-video-status" role="status"></span>
+    <div class="helmet-buttons" role="group" aria-label="HUD layout"><button data-helmet-mode="full">Ride view</button><button data-helmet-mode="quiet">Quiet mode</button></div>
+    <p id="helmet-health" role="status">Checking the helmet…</p>
+    <div class="helmet-buttons" role="group" aria-label="Focused camera">
+      <button data-helmet-camera="auto" aria-pressed="true">Auto view</button>
+      <button data-helmet-camera="front" aria-pressed="false">Front</button>
+      <button data-helmet-camera="left" aria-pressed="false">Left</button>
+      <button data-helmet-camera="right" aria-pressed="false">Right</button>
+      <button data-helmet-camera="rear" aria-pressed="false">Rear</button>
+    </div>
+    <details><summary>Quick side view</summary>
+    <div class="helmet-buttons" role="group" aria-label="Quick side view">
+      <button data-helmet-signal="left" aria-pressed="false">← Look left</button>
+      <button data-helmet-signal="off" aria-pressed="true">Close side view</button>
+      <button data-helmet-signal="right" aria-pressed="false">Look right →</button>
+    </div>
+    <p class="small">Open a side view for 15 seconds, then return to your selected camera.</p>
+    </details>
+  </section>
+  <div id="voice" class="workspace"><section>
+    <span class="eyebrow">YOUR COPILOT</span><h2 class="voice-title">Let’s talk.</h2><div class="sub">Find a stop. Change the plan. Think out loud.</div>
+    <div id="status" class="status" role="status">Loading voice controls…</div>
+    <div id="signal" class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="controls"><button id="connect" class="primary" disabled>Talk to Helmetd</button><button id="mute" disabled>Mute mic</button></div>
+    <div class="devices"><label>Microphone<select id="input"><option value="">MacBook microphone</option></select></label><label>Speaker<select id="output"><option value="">MacBook speakers</option></select></label></div>
+    <div class="small">Your voice goes to ElevenLabs during the call.<br>Camera video stays on your local network.</div>
+  </section><section>
+    <h2>Conversation</h2><div id="messages" class="messages" role="log" aria-live="polite"><div class="empty">Your conversation will appear here.<br>You can also type while connected.</div></div>
+    <form id="text-form"><input id="text" aria-label="Message Helmetd" placeholder="Or type a message…" maxlength="1000" disabled><button id="send" disabled>Send</button></form>
+    <div class="examples">“Find coffee nearby.”<br>“What's my next turn?” · “Find a fuel stop nearby.”<br>“Pause navigation.” · “Switch to focus mode.”</div>
+  </section></div>
+  <footer id="detail">Microphone stays off until you connect.</footer>
+</main><script src="/assets/elevenlabs.js"></script><script type="module" src="/assets/client.js"></script><script src="/assets/leaflet.js"></script><script type="module" src="/assets/nearby.js"></script><script type="module" src="/assets/helmet-controls.js"></script></body>
+</html>
