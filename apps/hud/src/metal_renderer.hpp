@@ -18,6 +18,7 @@ class MetalRenderer {
   MetalRenderer(const MetalRenderer&) = delete;
   MetalRenderer& operator=(const MetalRenderer&) = delete;
   bool poll_events(HudState& state, Time now);
+  void update_extra_camera(std::size_t index, const CameraFrame& frame);
   std::span<const std::uint8_t> render(const HudState& state, const CameraFrame* camera,
       Time now, double elapsed, std::uint64_t frame, bool readback);
   void save_snapshot(const std::string& path);
