@@ -22,3 +22,7 @@ build/
 dist/
 target/
 CMakeUserPresets.json
+
+# Editor recovery files.
+*.swp
+*.swo

@@ -1,13 +1,49 @@
 # helmetd
 
+## Helmet MVP
+
+Start the Mac HUD and local navigation/voice console with:
+
+```sh
+sh tools/helmet.sh --pi 172.20.10.10
+```
+
+Use the verified address for your Pi. Open <http://127.0.0.1:8016> in Zen or
+Chrome, enable location, choose a destination, preview the route, and start
+guidance. The native HUD receives a north-up route outline, current-position
+marker, next turn, and distance. This is a compact route overview; the detailed
+street/terrain map remains in the browser. Without a route, the HUD asks for a
+destination. Stale location removes the position marker and suspends turns.
+
+Three current camera feeds run independently. Selecting Front/Left/Right/Rear
+focuses that view; a missing camera shows unavailable. Rear is reserved for the
+fourth camera. Video no longer waits for object detection. Scene advisories
+expire independently; spatial boxes are drawn only on their exact source image.
+The normal HUD shows camera health, not invented speed or gear. `--demo` enables
+simulated telemetry and keyboard fault injection for development.
+
+The launcher reuses running services and both processes survive terminal closure.
+Pi camera/display services start independently of SSH. The console automatically
+refreshes its local control token after a backend restart. Use **Test voice** to
+check the chosen Mac audio output; browser location and microphone are opt-in.
+
+Current hardware limitations: no motorcycle telemetry/indicator input, no fourth
+camera yet, and no calibrated world anchoring. Camera placement and headphone
+routing need checking on the assembled helmet. The loop requires both devices on
+a reachable LAN; changing networks requires updating the Pi's Mac destination.
+
+
 A monorepo for a wearable, world-anchored HUD using a Raspberry Pi 5, a MacBook,
 and XREAL 1S glasses.
 
 Status: the native Metal HUD, Mac test sender, and Python voice/LLM sidecar are implemented.
+Mac OpenCV detection adds person/vehicle boxes and image-based caution cues;
+see [perception setup](apps/compute/README.md).
 The existing Shelby Ride game is imported in `apps/game`; its HUD adapter is pending.
 The Pi hardware HEVC receiver and fullscreen display are verified, with a user
-service to keep the receiver running independently of SSH. Voice has offline
-tests; live cloud/audio setup, physical camera capture, tracking, and
+service to keep the receiver running independently of SSH. The private ElevenLabs
+agent's greeting/audio session and local detection-to-voice bridge have bench checks.
+USB camera capture and the OpenCV video loop have a short bench check. Tracking and
 world-anchored rendering are pending. See the [stack](docs/stack.md).
 
 Explore the [motorcycle HUD concepts](docs/design/hud/README.md) and
@@ -35,16 +71,16 @@ path in addition to the video loop.
 
 ## Projects
 
-One Git repository contains the native Mac HUD, Pi media tools, planned compute
+One Git repository contains the native Mac HUD, Pi media tools, Mac perception
 component, Python voice app, and browser-based motorcycle game. The Pi tools
-use Python/GStreamer for bench bring-up; physical camera capture still needs
-validation with connected cameras.
+use Python/GStreamer for bench bring-up; sustained camera performance still
+needs validation beyond the short USB-camera check.
 
 ```text
 apps/
   game/                Shelby Ride: simulated motorcycle, traffic, and road world
   capture/             Pi camera/test-source uplink; physical cameras pending
-  compute/             Planned: Mac tracking, anchors, and application state
+  compute/             Mac OpenCV person/vehicle detection; world tracking pending
   hud/                 Mac: native Metal HUD, camera inset, and HEVC streaming
   display/             Pi hardware HEVC reception and fullscreen Wayland output
   voice/               Mac: ElevenLabs conversation, alerts, and LLM gateway
@@ -80,7 +116,7 @@ for connecting gameplay, live cameras, and scripted features to the HUD.
 ## Build and try the native Mac HUD
 
 ```sh
-brew install cmake ninja pkgconf gstreamer
+brew install cmake ninja pkgconf gstreamer opencv
 cmake --preset mac-debug
 cmake --build --preset mac-debug
 ctest --preset mac-debug
@@ -100,8 +136,11 @@ are verified; optical latency and world anchoring remain untested. See the
 
 ## Voice and selectable AI providers
 
-Helmetd owns reasoning; ElevenLabs handles speech and conversational turn taking.
-The provider is selectable through configuration, with no renderer changes.
+The bench uses a private ElevenLabs-hosted agent with Veda Sky. The Helmetd copilot
+adds HUD controls, fresh scene descriptions, system checks, ride timing and notes.
+Run `sh tools/copilot.sh` to launch HUD and voice together; see the voice guide for
+the current cloud-sync status. An optional
+Helmetd gateway supports explicit provider selection without renderer changes.
 
 ```sh
 uv sync --locked
@@ -112,8 +151,17 @@ uv run pytest
 ```
 
 See [voice setup](apps/voice/README.md) for live conversation, spoken alerts,
-Mac audio dependencies, and the authenticated cloud-to-Mac endpoint required
-by ElevenLabs. See [the LLM package](packages/llm/README.md) for provider settings.
+Mac audio dependencies, and the optional authenticated cloud-to-Mac gateway.
+See [the LLM package](packages/llm/README.md) for provider settings.
+
+## Shared road hazards
+
+[Solana devnet road reports](apps/hazards/README.md) let trusted riders publish
+expiring hazard observations and retrieve nearby reports without a Helmetd server.
+The CLI signs reports, verifies retrieved transactions, filters by distance and
+expiry, and supports clear observations. Voice tools use a fresh local GPS/demo
+position. GPS hardware and automatic route matching are not connected; publishing
+requires a funded devnet wallet.
 
 Start with the [repository plan](docs/repository-plan.md),
 [architecture](docs/architecture.md), and

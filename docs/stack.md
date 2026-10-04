@@ -2,7 +2,8 @@
 
 Status: native Metal HUD with camera input and HEVC output, synthetic Mac sender,
 and voice/LLM sidecar implemented. The Pi hardware HEVC receiver and fullscreen
-Wayland output are verified; real camera capture and tracking remain pending.
+Wayland output are verified. A USB-camera/OpenCV full loop has a short bench
+check; sustained performance, tracking, and calibration remain pending.
 The local Mac reports Apple M4
 with 16 GiB RAM; this plan
 assumes it is also the intended rendering machine.
@@ -11,7 +12,7 @@ assumes it is also the intended rendering machine.
 | --- | --- |
 | Pi OS | Tested: Debian 13, 64-bit, with labwc/Wayland desktop |
 | Capture on Pi | Bench: Python/PyGObject + GStreamer; native C++20/libcamera remains a later option |
-| Compute on Mac | C++20 + OpenCV 4 + Eigen |
+| Compute on Mac | C++20 + OpenCV DNN / YOLOX-S for people/vehicles; world tracking pending |
 | HUD on Mac | C++20 core + Metal; Objective-C++ bridge to Metal/AppKit/CoreText |
 | HUD encoding | GStreamer using Apple's VideoToolbox HEVC hardware encoder |
 | Display on Pi | Python/PyGObject + GStreamer, V4L2 stateless HEVC decoder, Wayland output |
