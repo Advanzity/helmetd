@@ -1,6 +1,9 @@
 """Render real Metal frames, encode/decode HEVC, and inspect the resulting pixels."""
 
 import argparse
+import os
+import socket
+import time
 import subprocess
 import tempfile
 from pathlib import Path
@@ -36,6 +39,7 @@ def main():
                     args.hud,
                     "--headless",
                     "--warning",
+                    "--demo",
                     "--width",
                     "640",
                     "--height",
@@ -80,18 +84,18 @@ def main():
         )
         frame = video[-frame_size:]
         # Check semantics and orientation after the full render/codec path.
-        warning = list(pixels_in(frame, 210, 72, 220, 45))
-        assert sum(r > 150 and 65 < g < 220 and b < 110 for r, g, b in warning) > 200, (
+        warning = list(pixels_in(frame, 470, 195, 140, 36))
+        assert sum(r > 150 and 65 < g < 220 and b < 110 for r, g, b in warning) > 100, (
             "Amber warning missing/misplaced"
         )
-        speed = list(pixels_in(frame, 262, 262, 60, 55))
+        speed = list(pixels_in(frame, 262, 300, 42, 35))
         assert sum(min(rgb) > 170 for rgb in speed) > 150, "Speed text missing/misplaced"
-        center = list(pixels_in(frame, 170, 140, 245, 100))
+        center = list(pixels_in(frame, 190, 100, 260, 140))
         assert sum(max(rgb) < 12 for rgb in center) > len(center) * 0.99, (
             "Center of view should stay black"
         )
-        camera = list(pixels_in(frame, 444, 210, 168, 90))
-        assert sum(min(rgb) > 180 for rgb in camera) > 20, "Camera texture missing"
+        camera = list(pixels_in(frame, 34, 218, 140, 77))
+        assert all(max(rgb) < 12 for rgb in camera), "Auto ride view must hide camera video"
         # Guard against overwriting a prior recording/snapshot.
         before = recording.read_bytes()
         retry = subprocess.run(
@@ -102,7 +106,56 @@ def main():
         assert retry.returncode != 0 and recording.read_bytes() == before, (
             "Existing capture overwritten"
         )
-        print("PASS: Metal/HEVC preserves the warning, text, camera, and clear center.")
+        # Exercise independent composition, including a genuinely empty frame.
+        regions = {"camera": (24, 190, 170, 145), "nav": (24, 200, 170, 135),
+                   "telemetry": (260, 298, 145, 45)}
+        for panel in ("none", *regions):
+            png, raw = root / f"{panel}.png", root / f"{panel}.rgb"
+            run([args.hud, "--headless", "--camera", "none",
+                 "--panels", panel, "--width", "640", "--height", "360",
+                 "--frames", "1", "--snapshot", str(png)])
+            run([args.gst_launch, "-q", "filesrc", f"location={png}", "!", "pngdec",
+                 "!", "videoconvert", "!", "video/x-raw,format=RGB", "!", "filesink",
+                 f"location={raw}"])
+            image = raw.read_bytes()
+            assert len(image) == frame_size, "Incomplete panel snapshot"
+            if panel == "none":
+                assert not any(image), "Hidden panels left nonblack pixels"
+                continue
+            assert all(max(pixel) < 12 for pixel in pixels_in(image, 220, 90, 200, 130)), (
+                "Reference layout must keep the center clear"
+            )
+        # Exercise the real local frame bridge, stale timeout and camera arbitration.
+        for mode in ("minimal", "fresh", "stale", "camera", "warning"):
+            bridge = root / "hud-map.bgra"
+            bridge.write_bytes(bytes([20, 80, 220, 255]) * (640 * 360))
+            if mode == "stale":
+                os.utime(bridge, (time.time()-10, time.time()-10))
+            server, local = root / "map.sock", root / "client.sock"
+            png, raw = root / f"map-{mode}.png", root / f"map-{mode}.rgb"
+            with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as client:
+                client.bind(str(local)); client.settimeout(2)
+                process = subprocess.Popen([args.hud, "--headless", "--camera", "none",
+                    "--panels", "camera,nav", "--width", "640", "--height", "360",
+                    "--frames", "30", "--control-socket", str(server), "--snapshot", str(png)] + (["--warning"] if mode == "warning" else []) + ([] if mode == "minimal" else ["--diagnostics"]),
+                    stdout=subprocess.DEVNULL)
+                try:
+                    deadline=time.monotonic()+5
+                    while not server.exists() and time.monotonic()<deadline: time.sleep(.01)
+                    client.sendto(b"map nav_map active 500 500 2 0 0 1000 1000",str(server));client.recv(8192)
+                    if mode == "camera":
+                        client.sendto(b"camera camera front",str(server));client.recv(8192)
+                    process.wait(timeout=5)
+                    assert process.returncode == 0
+                finally:
+                    if process.poll() is None: process.kill();process.wait()
+                    local.unlink(missing_ok=True)
+            run([args.gst_launch,"-q","filesrc",f"location={png}","!","pngdec","!",
+                "videoconvert","!","video/x-raw,format=RGB","!","filesink",f"location={raw}"])
+            colors=list(pixels_in(raw.read_bytes(),36,220,140,80))
+            matches=sum(r>200 and 60<g<100 and b<35 for r,g,b in colors)
+            assert (matches>10000) if mode in ("minimal", "fresh", "warning") else (matches==0), (mode,matches)
+        print("PASS: Metal/HEVC preserves content; panels hide independently on pure black.")
 
 
 if __name__ == "__main__":

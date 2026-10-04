@@ -29,6 +29,8 @@ def main():
                 "--headless",
                 "--camera",
                 "udp",
+                "--control-socket", str(root / "hud.sock"),
+                "--camera-label", "FRONT",
                 "--camera-port",
                 str(port),
                 "--width",
@@ -56,6 +58,11 @@ def main():
                         if not chunk:
                             raise RuntimeError(log.decode(errors="replace"))
                         log.extend(chunk)
+            with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as control:
+                control.bind(str(root / "client.sock"))
+                control.settimeout(2)
+                control.sendto(b"test camera front", str(root / "hud.sock"))
+                assert b'"status":"ok"' in control.recv(8192)
             run(
                 [
                     args.gst_launch,
@@ -131,7 +138,9 @@ def main():
         assert len(frames) >= 120, "Incomplete HUD recording"
 
         def bright_camera_pixels(frame):
-            return sum(min(rgb) > 180 for rgb in pixels_in(frame, 444, 210, 168, 90))
+            # Identify the white test ball, not the brighter gray unavailable
+            # labels (including codec ringing at their edges).
+            return sum(min(rgb) > 230 for rgb in pixels_in(frame, 34, 218, 140, 77))
 
         if args.reject_profile:
             assert b"Camera unavailable:" in log, "Unsupported profile did not report failure"
