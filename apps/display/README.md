@@ -1,10 +1,19 @@
 # Pi HUD display
 
 `receive.py` receives the Mac's HEVC RTP/UDP stream, hardware-decodes it with
-`v4l2slh265dec`, and displays it through `waylandsink`. On the tested Pi this
-negotiates DMA-BUF NV12 directly from `/dev/video19` to the existing Wayland
-desktop. It does not stop the compositor or claim DRM ownership. Python drives
-the GStreamer lifecycle; pixels stay in the native media pipeline.
+`v4l2slh265dec`, converts decoded video to full-range BGRx/sRGB, and displays it
+through `waylandsink`. Hardware decoding remains on `/dev/video19`; CPU color
+conversion ensures RGB zero reaches the existing Wayland desktop. It does not
+stop the compositor or claim DRM ownership. Python drives the GStreamer
+lifecycle; pixels stay in the native media pipeline.
+
+Do not remove the RGB conversion without checking physical scanout color
+properties. The tested labwc path directly scanned limited-range BT.709 NV12
+with the plane configured for full-range BT.601, lifting black above zero.
+A compositor screenshot could still look black because capture used a different
+conversion path. `videoconvert ! video/x-raw,format=BGRx,colorimetry=sRGB`
+removes that YUV range/matrix ambiguity before scanout. This costs conversion
+work and is not a zero-copy path.
 
 RTP uses UDP 5000, payload 96 and a 90000 Hz clock. The 120 ms jitter budget and
 `wait-for-keyframe=true` favor stable demo playback on the current hotspot.
@@ -67,3 +76,12 @@ The first attempt to join the running stream without keyframe recovery caused
 a decoder error and SIGSEGV; the current settings recovered a stable process.
 This does not establish sustained loss resilience, optical correctness in the
 glasses, or motion-to-photon latency. See the [bench record](../../hardware/pi-bench-2026-10-03.md).
+
+
+### XREAL audio
+
+Install `config/pi/helmetd-audio.service` into `~/.config/systemd/user/`, then run `systemctl --user daemon-reload` and `systemctl --user enable --now helmetd-audio`. It receives mono RTP/L16, 48 kHz, payload 98 on UDP 5010, buffers 100 ms, and plays stereo directly through the Pi 5 HDMI-0 ALSA device at 40% gain. The hardware device is explicit so an unavailable PipeWire profile cannot redirect speech to Dummy Output. Adjust `plughw:CARD=vc4hdmi0,DEV=0` if using HDMI-1. Requires the GStreamer ALSA plugin.
+
+`tools/helmet.sh --pi <address>` stores the destination in the ignored `.local/pi-audio.json`. The console forwards ElevenLabs WebRTC 48 kHz PCM through the guarded local API, silences local conversation playback, and uses local Mac speech synthesis for navigation cues sent to the same receiver. Refresh an existing console after updating. Native voice sessions also use this destination; `--macbook` explicitly retains Mac playback. The microphone remains on the Mac: this HDMI connection provides no microphone return path.
+
+The service and HDMI stream can be verified with `systemctl --user status helmetd-audio`, `wpctl status` and `/proc/asound/card0/pcm0p/sub0/status`. Successful UDP sends do not prove audible playback; verify with the wearer. The link uses the same trusted local network as the video stream.

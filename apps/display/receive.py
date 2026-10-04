@@ -40,6 +40,10 @@ def main():
         " ! rtph265depay wait-for-keyframe=true ! video/x-h265,stream-format=byte-stream,alignment=au"
         " ! h265parse ! v4l2slh265dec name=decoder"
         " ! queue max-size-buffers=2 max-size-bytes=0 max-size-time=0 leaky=downstream"
+        # labwc's direct NV12 scanout used full-range BT.601 for our limited
+        # BT.709 stream. Convert using decoded colorimetry before presentation,
+        # so black is RGB zero even when the compositor bypasses its shaders.
+        " ! videoconvert ! video/x-raw,format=BGRx,colorimetry=sRGB"
         f" ! {sink} name=display sync=false enable-last-sample=false"
     )
     pipeline = Gst.parse_launch(description)
@@ -104,7 +108,7 @@ def main():
         GLib.timeout_add_seconds(args.seconds, stop)
     if args.sink == "wayland":
         GLib.timeout_add(250, fullscreen)
-    print(f"Listening UDP {args.port}; HEVC PT96 hardware v4l2slh265dec; sink={args.sink}; stale={args.stale_ms}ms", flush=True)
+    print(f"Listening UDP {args.port}; HEVC PT96 hardware v4l2slh265dec; RGB presentation; sink={args.sink}; stale={args.stale_ms}ms", flush=True)
     try:
         if pipeline.set_state(Gst.State.PLAYING) == Gst.StateChangeReturn.FAILURE:
             raise RuntimeError("Cannot start display pipeline")
