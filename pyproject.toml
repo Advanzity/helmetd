@@ -2,7 +2,7 @@
 name = "helmetd-workspace"
 version = "0.1.0"
 requires-python = ">=3.12,<3.15"
-dependencies = ["helmetd-voice"]
+dependencies = ["helmetd-voice", "helmetd-hazards"]
 
 [project.optional-dependencies]
 audio = ["helmetd-voice[audio]"]
@@ -14,14 +14,15 @@ dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "httpx>=0.28,<1", "ruff>=0.12,<1
 package = false
 
 [tool.uv.workspace]
-members = ["apps/voice", "packages/llm"]
+members = ["apps/voice", "apps/hazards", "packages/llm"]
 
 [tool.uv.sources]
 helmetd-voice = { workspace = true }
 helmetd-llm = { workspace = true }
+helmetd-hazards = { workspace = true }
 
 [tool.pytest.ini_options]
-testpaths = ["packages/llm/tests", "apps/voice/tests"]
+testpaths = ["packages/llm/tests", "apps/voice/tests", "apps/hazards/tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
