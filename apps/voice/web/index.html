@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="helmetd-token" content="__HELMETD_TOKEN__">
+  <title>Helmetd · Ride</title>
+  <style>
+    :root{color-scheme:dark;font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0d0f;color:#e4ebed}
+    *{box-sizing:border-box}body{margin:0}main{max-width:1000px;margin:auto;padding:40px 32px}header{display:flex;justify-content:space-between;border-bottom:1px solid #263034;padding-bottom:22px;font:12px ui-monospace,monospace;letter-spacing:.12em;color:#8e9ca3}
+    .workspace{display:grid;grid-template-columns:1fr 1fr;gap:60px;padding-top:64px}h1{font-size:58px;letter-spacing:-.06em;font-weight:500;margin:0 0 12px}.sub{color:#90a0a7;line-height:1.6;font-size:14px}.status{color:#8be0df;font:13px ui-monospace,monospace;min-height:38px;line-height:1.5;margin-top:24px}.signal{display:flex;align-items:center;gap:5px;height:75px;margin:24px 0}.signal i{display:block;width:5px;height:12px;background:#8be0df;transition:height .18s,opacity .3s;opacity:.3}.signal.live i{height:calc(12px + var(--level,0)*52px);opacity:1}
+    button,input,select{font:inherit}button{cursor:pointer;border:1px solid #35434b;border-radius:6px;background:transparent;color:#d5e2e7;padding:12px 20px;transition:background .15s}button:hover{background:#1d292e}button:disabled{opacity:.45;cursor:default}.primary{background:#8be0df;color:#092025;border-color:#8be0df;min-width:156px}.primary:hover{background:#adefeb}.controls{display:flex;gap:10px}.devices{margin:32px 0;display:grid;gap:16px}label{display:block;font-size:12px;color:#90a0a7}select{width:100%;padding:9px 0;background:transparent;border:0;border-bottom:1px solid #35434b;color:#e4ebed;margin-top:4px}h2{font-size:12px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#90a0a7;margin:0 0 20px}.messages{height:330px;overflow:auto;scroll-behavior:smooth}.message{margin-bottom:20px;font-size:15px;line-height:1.6;animation:appear .2s ease-out}.message b{display:block;font-size:11px;letter-spacing:.05em;color:#8be0df;margin-bottom:4px}.message.user b{color:#90a0a7}.empty{color:#586b75;font-size:14px;line-height:1.8}form{display:flex;gap:8px;border-top:1px solid #263034;padding-top:18px;margin-top:20px}input{min-width:0;flex:1;background:transparent;border:0;color:#e4ebed;outline-offset:4px}form button{font-size:13px;padding:9px 13px}.examples{font-size:13px;color:#90a0a7;line-height:1.8;margin-top:28px}.error{color:#ffa88e}.small{font-size:11px;color:#70818a;line-height:1.7}footer{border-top:1px solid #263034;padding-top:18px;margin-top:48px;color:#70818a;font-size:12px}@keyframes appear{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}@media(max-width:700px){main{padding:25px 22px}.workspace{grid-template-columns:1fr;gap:28px;padding-top:36px}h1{font-size:46px}.messages{height:220px}footer{margin-top:30px}}@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+  </style>
+  <link rel="stylesheet" href="/assets/navigation.css">
+</head>
+<body><main>
+  <header><a href="#navigation">HELMETD / RIDE</a><a href="#voice">TALK TO HELMETD ↗</a></header>
+  <section id="navigation" aria-label="Motorcycle navigation">
+    <div class="nav-heading"><h1>Helmetd.</h1><span class="demo-label">MOTORCYCLE / SIMULATION</span></div>
+    <form id="nav-form">
+      <label>Destination<select id="destination"><option value="lookout">Ridge Lookout</option><option value="cafe">Coffee Stop</option><option value="fuel">Fuel Stop</option><option value="garage">Garage</option></select></label>
+      <label>Route preference<select id="preference"><option value="fastest">Fastest</option><option value="avoid_highways">Avoid highways</option></select></label>
+      <button class="primary" type="submit">Preview route</button>
+    </form>
+    <div class="route-workspace">
+      <div class="route-map">
+        <svg viewBox="0 0 740 450" role="img" aria-labelledby="map-title map-description"><title id="map-title">Demo motorcycle route</title><desc id="map-description">Fictional road network. No real map or GPS.</desc><g id="roads"></g><polyline id="route-active" points=""></polyline><polyline id="route-preview" points=""></polyline><g id="places"></g><circle id="rider" cx="80" cy="360" r="9"></circle></svg>
+        <div class="map-caption"><span>FICTIONAL ROADS · NO LIVE GPS</span><span id="nav-hud">Connecting…</span><span id="route-legend">Choose a destination</span></div>
+      </div>
+      <div class="route-info">
+        <div id="nav-state" class="eyebrow">Ready to plan</div>
+        <h2 id="nav-destination">Where are we riding?</h2>
+        <div class="route-metrics"><div><strong id="nav-time">—</strong><span>Estimated remaining</span></div><div><strong id="nav-distance">—</strong><span>Distance remaining</span></div></div>
+        <div class="route-meta"><span id="nav-preference">Motorcycle</span><span id="nav-stop">No added stop</span></div>
+        <div class="nav-actions"><button id="nav-start" class="primary" hidden>Start route</button><button id="nav-dismiss" hidden>Dismiss preview</button><button id="nav-pause" hidden>Pause navigation</button><button id="nav-reroute" class="primary" hidden>Reroute</button><button id="nav-cancel" hidden>Cancel route</button></div>
+        <div class="turn-cue"><span id="turn-arrow" aria-hidden="true">↗</span><div><span id="turn-distance">Next turn</span><p id="turn-instruction">Start a route to see turn guidance.</p></div></div>
+      </div>
+    </div>
+    <div id="nav-notice" class="nav-notice" role="status">Choose a destination to preview a demo route.</div>
+    <div class="route-extras"><label>Add a stop<select id="stop-place"><option value="fuel">Fuel Stop</option><option value="cafe">Coffee Stop</option></select></label><button id="nav-add-stop" disabled>Preview stop</button><button id="nav-remove-stop" hidden>Remove stop</button></div>
+    <details class="demo-controls"><summary>Test the ride</summary><p>Move through the simulation or test how guidance handles a missed turn and lost location.</p><div class="nav-actions"><button id="demo-play" disabled>Play demo · 4×</button><button id="demo-next" disabled>Next turn</button><button id="demo-miss" disabled>Miss turn</button><button id="demo-location" disabled>Lose location</button><button id="demo-reset">Reset demo</button></div></details>
+  </section>
+  <div id="voice" class="workspace"><section>
+    <h2>Talk to Helmetd</h2><div class="sub">Ask for a route, change plans, or just talk.</div>
+    <div id="status" class="status" role="status">Loading voice controls…</div>
+    <div id="signal" class="signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="controls"><button id="connect" class="primary" disabled>Talk to Helmetd</button><button id="mute" disabled>Mute mic</button></div>
+    <div class="devices"><label>Microphone<select id="input"><option value="">MacBook microphone</option></select></label><label>Speaker<select id="output"><option value="">MacBook speakers</option></select></label></div>
+    <div class="small">Your voice goes to ElevenLabs during the call.<br>Camera is off for this test. No Pi required.</div>
+  </section><section>
+    <h2>Conversation</h2><div id="messages" class="messages" role="log" aria-live="polite"><div class="empty">Your conversation will appear here.<br>You can also type while connected.</div></div>
+    <form id="text-form"><input id="text" aria-label="Message Helmetd" placeholder="Or type a message…" maxlength="1000" disabled><button id="send" disabled>Send</button></form>
+    <div class="examples">“Take me to Ridge Lookout, avoiding highways.”<br>“What's my next turn?” · “Add a fuel stop.”<br>“Pause navigation.” · “Switch to focus mode.”</div>
+  </section></div>
+  <footer id="detail">Microphone stays off until you connect.</footer>
+</main><script src="/assets/elevenlabs.js"></script><script type="module" src="/assets/client.js"></script><script type="module" src="/assets/navigation.js"></script></body>
+</html>
