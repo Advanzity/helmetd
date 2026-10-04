@@ -15,7 +15,8 @@ class DirectionalAlerts:
         live = {c['camera'] for c in cameras if c['video_fresh']}
         if status.get('status') == 'ok' and status.get('game_fresh'):
             mask = status.get('game_warning_mask', 0)
-            if mask & 256: active.add(('front', 'POTHOLE'))
+            for bit,label in ((256,'POTHOLE'),(512,'DEBRIS'),(1024,'ROADWORKS'),(2048,'SLIPPERY ROAD')):
+                if mask & bit: active.add(('front',label))
             live.update(('left', 'right', 'rear', 'front'))
             for side, bit in (('left', 1), ('right', 2), ('rear', 4), ('front', 8)):
                 if mask & (bit << 4):
@@ -53,7 +54,7 @@ class DirectionalAlerts:
 
     def phrase(self, key):
         side, label = key
-        if label == 'POTHOLE': return 'Pothole ahead.'
+        if label in ('POTHOLE','DEBRIS','ROADWORKS','SLIPPERY ROAD'): return label.capitalize()+' ahead.'
         suffix = {'front': ' ahead' if label == 'VEHICLE' else '', 'rear': ' behind you', 'left': ' on the left', 'right': ' on the right'}[side]
         return f'{label.capitalize()} detected{suffix}.'
 

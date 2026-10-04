@@ -153,6 +153,9 @@ struct MetalRenderer::Impl {
   std::array<double, 4> cue_seen{-10,-10,-10,-10};
   std::array<double, 4> cue_entered{};
   std::optional<Time> last_preview_at;
+  std::optional<Time> notification_seen;
+  float notification_remaining=0;
+  double notification_clock=0;
   static float ease_out(float t) {
     if (NSWorkspace.sharedWorkspace.accessibilityDisplayShouldReduceMotion) return t > 0 ? 1.f : 0.f;
     t = std::clamp(t, 0.f, 1.f);
@@ -378,6 +381,10 @@ struct MetalRenderer::Impl {
         if (!valid_detection(d)) continue;
         const float x = left + d.x * width, y = top + d.y * height;
         const float w = d.width * width, h = d.height * height;
+        if (std::string(detection_label(d.class_id)) == "PERSON") {
+          quad(x,y,w,h,Color{1.f,.65f,.2f,.18f});
+          corners(x,y,w,h,white);
+        }
         const float stroke = std::min({2.f, w, h});
         quad(x, y, w, stroke, camera_color);
         quad(x, y + h - stroke, w, stroke, camera_color);
@@ -583,7 +590,10 @@ struct MetalRenderer::Impl {
       if (game.warnings & 34) { symbol(1,1234,316,28,42); text(game.warnings & 32 ? "PERSON" : "VEHICLE",1152,331,13,amber); }
       if (game.warnings & 68) { symbol(2,600,548,46,42); text(game.warnings & 64 ? "PERSON BEHIND" : "VEHICLE BEHIND",540,593,14,amber); }
       if (game.warnings & 136) { symbol(3,613,526,34,36); text(game.warnings & 128 ? "PERSON AHEAD" : "VEHICLE AHEAD",550,568,14,amber); }
-      if (game.warnings & 256) { road_warning_icon(0,613,448,36); text("POTHOLE AHEAD",550,491,14,amber); }
+      for (int kind=0;kind<4;++kind) if (game.warnings & (256<<kind)) {
+        constexpr const char* labels[]={"POTHOLE AHEAD","DEBRIS AHEAD","ROADWORKS AHEAD","SLIPPERY ROAD"};
+        road_warning_icon(kind,613,448,36);text(labels[kind],550,491,14,amber);break;
+      }
       alert = game.warnings != 0;
     }
     for (std::size_t i = 0; i < state.extra_cameras.size(); ++i) {
@@ -736,10 +746,14 @@ struct MetalRenderer::Impl {
       std::snprintf(counter, sizeof(counter), "F%06llu  %07.2fs", static_cast<unsigned long long>(frame), elapsed);
       text(counter, 64, 668, 13, muted);
     }
-    if (state.panels && !state.quiet && !directional_alert &&
-        state.notification_at && HudState::fresh(state.notification_at, now, std::chrono::milliseconds(3000)) &&
-        elapsed-notice_entered >= 2) {
-      const float age = std::chrono::duration<float>(now-*state.notification_at).count();
+    if (state.notification_at != notification_seen) {
+      notification_seen=state.notification_at;notification_remaining=state.notification_at?3.f:0.f;
+    }
+    const float notification_dt=std::clamp(float(elapsed-notification_clock),0.f,.1f);
+    notification_clock=elapsed;
+    if (state.panels && !state.quiet && !directional_alert && notification_remaining>0 && elapsed-notice_entered>=2) {
+      notification_remaining=std::max(0.f,notification_remaining-notification_dt);
+      const float age=3.f-notification_remaining;
       composition_opacity = std::min(ease_out(age/.22f), ease_out((3-age)/.35f));
       quad(935, 225, 32, 32, white, 8);
       text(state.notification_app, 978, 222, 12, muted);

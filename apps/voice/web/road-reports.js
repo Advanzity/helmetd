@@ -6,8 +6,8 @@ async function refresh(){
  try{
   const response=await fetch('/api/game/reports',{cache:'no-store',signal:AbortSignal.timeout(2500)});if(!response.ok)throw Error();
   const {reports}=await response.json();list.replaceChildren();
-  status.textContent=reports.length?`${reports.length} active pothole report${reports.length===1?'':'s'} · Game roads`:'No rider reports yet. Press H while riding to add one.';
-  for(const report of reports){const row=document.createElement('li'),name=document.createElement('strong'),detail=document.createElement('span');name.textContent='Pothole';detail.textContent=`${Math.round(report.x)}, ${Math.round(-report.z)} m · ${new Date(report.created*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;row.append(name,detail);list.append(row);}
+  status.textContent=reports.length?`${reports.length} active hazard report${reports.length===1?'':'s'} · Game roads`:'No rider reports yet. Press H while riding to add one.';
+  for(const report of reports){const row=document.createElement('li'),name=document.createElement('strong'),detail=document.createElement('span');name.textContent=(report.kind||'pothole').replaceAll('_',' '); detail.textContent=`${Math.round((report.confidence||0)*100)}% confidence · ${Math.round(report.x)}, ${Math.round(-report.z)} m · ${new Date(report.created*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;row.append(name,detail);list.append(row);}
  }catch{status.textContent='Reports unavailable. Retry when the local console reconnects.';}finally{busy=false;button.disabled=false;}
 }
 button.addEventListener('click',refresh);refresh();setInterval(()=>{if(!document.hidden)refresh()},5000);

@@ -30,7 +30,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
                 >> crashed >> game.warnings) || (input >> extra) ||
         active < 0 || active > 1 || crashed < 0 || crashed > 1 ||
         game.speed_mph < 0 || game.speed_mph > 336 || game.gear < -1 || game.gear > 6 ||
-        game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 511 ||
+        game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 4095 ||
         (game.signal != "off" && game.signal != "left" && game.signal != "right")) return error();
     game.active = active;
     game.crashed = active && crashed;
