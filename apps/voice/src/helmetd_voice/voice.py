@@ -1,14 +1,19 @@
 import os
 import threading
+import time
 import wave
 from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
 from elevenlabs.client import ElevenLabs
-from elevenlabs.conversational_ai.conversation import Conversation
+from elevenlabs.conversational_ai.conversation import ClientTools, Conversation
 
 from .audio import LocalAudio
+
+
+class VoiceSessionError(RuntimeError):
+    """An application-owned error safe to show without provider credentials."""
 
 
 def required(name: str) -> str:
@@ -56,35 +61,71 @@ class ManagedConversation(Conversation):
             self.end_session()
 
 
-def talk():
+def talk(with_alerts=False, alert_port=8014, seconds=None, macbook=False):
+    from .alerts import AlertListener, prepare_alerts
+    from .copilot import Copilot
+
     agent_id = required("ELEVENLABS_AGENT_ID")
-    audio = LocalAudio()
+    audio = LocalAudio(macbook=macbook)
+    clips = prepare_alerts() if with_alerts else None
+    listener = None
+    timer = None
     with elevenlabs_client() as client:
+        copilot = Copilot(audio=audio)
+        client_tools = ClientTools()
+        for name in copilot.handlers:
+            client_tools.register(name, lambda p, name=name: copilot.call(name, p))
+
+        def response(text):
+            copilot.thinking_until = 0
+            print(f"Helmetd: {text}", flush=True)
+
+        def transcript(text):
+            copilot.thinking_until = time.monotonic() + 10
+            print(f"You: {text}", flush=True)
+
         conversation = ManagedConversation(
             client,
             agent_id,
             requires_auth=True,
             audio_interface=audio,
-            callback_agent_response=lambda text: print(f"Helmetd: {text}", flush=True),
-            callback_user_transcript=lambda text: print(f"You: {text}", flush=True),
+            client_tools=client_tools,
+            callback_agent_response=response,
+            callback_user_transcript=transcript,
             callback_agent_response_correction=lambda original, corrected: print(
                 f"Helmetd (corrected): {corrected}", flush=True
             ),
         )
         audio.on_error = conversation.end_session
+        copilot.on_end = conversation.end_session
+        copilot.on_context = conversation.send_contextual_update
         started = False
         try:
+            if clips:
+                listener = AlertListener(audio, clips, alert_port)
+                copilot.listener = listener
             conversation.start_session()
             started = True
+            copilot.start()
+            if listener:
+                listener.start()
+            if seconds:
+                timer = threading.Timer(seconds, conversation.end_session)
+                timer.start()
             print("Voice session starting. Press Ctrl-C to stop.", flush=True)
             conversation_id = conversation.wait_for_session_end()
         except KeyboardInterrupt:
             conversation.end_session()
             conversation_id = conversation.wait_for_session_end() if started else None
         finally:
+            if timer:
+                timer.cancel()
+            if listener:
+                listener.stop()
+            copilot.stop()
             conversation.end_session()
         if conversation.error or audio.error:
-            raise RuntimeError(conversation.error or audio.error)
+            raise VoiceSessionError(audio.error or conversation.error)
         if conversation_id:
             print(f"Conversation: {conversation_id}")
 

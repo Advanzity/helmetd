@@ -1,3 +1,4 @@
+import json
 import sys
 import threading
 import wave
@@ -76,6 +77,7 @@ def test_failed_tts_removes_partial_recording(monkeypatch, tts, tmp_path):
 
 
 def test_audio_partial_start_failure_releases_output(monkeypatch):
+    monkeypatch.setattr("helmetd_voice.pi_audio.PiAudio.target", lambda _: None)
     output = Mock()
     audio = Mock()
     audio.open.side_effect = [output, OSError("no microphone")]
@@ -98,6 +100,41 @@ def test_stop_before_start_does_not_open_devices(monkeypatch):
     constructor.assert_not_called()
 
 
+def test_macbook_mode_selects_built_in_audio_instead_of_glasses(monkeypatch):
+    device = Mock()
+    device.get_device_count.return_value = 3
+    device.get_device_info_by_index.side_effect = [
+        {"name": "XREAL 1S", "maxOutputChannels": 2},
+        {"name": "MacBook Air Speakers", "maxOutputChannels": 2},
+        {"name": "XREAL 1S", "maxInputChannels": 2},
+        {"name": "MacBook Air Speakers", "maxInputChannels": 0},
+        {"name": "MacBook Air Microphone", "maxInputChannels": 1},
+    ]
+    monkeypatch.setitem(
+        sys.modules, "pyaudio", SimpleNamespace(PyAudio=lambda: device, paInt16=8, paContinue=0)
+    )
+    audio = LocalAudio(macbook=True)
+    try:
+        audio.start(lambda _: None)
+        assert device.open.call_args_list[0].kwargs["output_device_index"] == 1
+        assert device.open.call_args_list[1].kwargs["input_device_index"] == 2
+    finally:
+        audio.stop()
+
+
+def test_macbook_mode_never_silently_falls_back_to_other_devices(monkeypatch):
+    device = Mock()
+    device.get_device_count.return_value = 1
+    device.get_device_info_by_index.return_value = {"name": "XREAL 1S", "maxOutputChannels": 2}
+    monkeypatch.setitem(
+        sys.modules, "pyaudio", SimpleNamespace(PyAudio=lambda: device, paInt16=8, paContinue=0)
+    )
+    with pytest.raises(RuntimeError, match="Mac microphone/output"):
+        LocalAudio(macbook=True).start(lambda _: None)
+    device.open.assert_not_called()
+    device.terminate.assert_called_once()
+
+
 def test_upload_shutdown_does_not_join_itself(monkeypatch):
     device = Mock()
     device.open.side_effect = [Mock(), Mock()]
@@ -115,6 +152,51 @@ def test_upload_shutdown_does_not_join_itself(monkeypatch):
     audio._input_queue.put(b"\x00\x00")
     assert ended.wait(2)
     device.terminate.assert_called_once()
+
+
+def test_microphone_backpressure_keeps_recent_audio_and_session_alive():
+    audio = LocalAudio()
+    entered, release, delivered = threading.Event(), threading.Event(), threading.Event()
+    received = []
+
+    def upload(data):
+        received.append(data)
+        if data == b"first":
+            entered.set()
+            release.wait(2)
+        if data == b"last":
+            delivered.set()
+
+    audio._send_thread = threading.Thread(target=audio._send, args=(upload,))
+    audio._send_thread.start()
+    try:
+        audio._queue_input(b"first")
+        assert entered.wait(2)
+        for i in range(20):
+            audio._queue_input(bytes([i]))
+        audio._queue_input(b"last")
+        assert audio._input_queue.qsize() == 8
+        assert audio.dropped_input_chunks == 13
+        assert audio.error is None and not audio._stop.is_set()
+        release.set()
+        assert delivered.wait(2)
+        assert received == [b"first", *[bytes([i]) for i in range(13, 20)], b"last"]
+    finally:
+        release.set()
+        audio.stop()
+
+
+def test_cli_shows_safe_session_error_instead_of_generic_message(monkeypatch, capsys):
+    from helmetd_voice import cli
+
+    monkeypatch.setattr(sys, "argv", ["helmetd-voice", "talk", "--no-sync"])
+    monkeypatch.setattr(
+        cli, "talk", Mock(side_effect=voice.VoiceSessionError("Audio output failed"))
+    )
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+    assert error.value.code == 1
+    assert "Voice session ended: Audio output failed" in capsys.readouterr().err
 
 
 def test_conversation_worker_failure_is_contained_and_cleaned(monkeypatch):
@@ -136,3 +218,21 @@ def test_conversation_worker_failure_is_contained_and_cleaned(monkeypatch):
     assert conversation.error
     assert "secret" not in conversation.error
     audio.stop.assert_called_once()
+
+
+def test_context_uses_sdk_background_event_not_user_turn():
+    with httpx.Client() as http:
+        conversation = voice.ManagedConversation(
+            ElevenLabs(api_key="test", httpx_client=http),
+            "agent-test",
+            requires_auth=True,
+            audio_interface=Mock(),
+        )
+        socket = Mock()
+        conversation._ws = socket
+        try:
+            conversation.send_contextual_update("HUD is in focus mode")
+            event = json.loads(socket.send.call_args.args[0])
+            assert event == {"type": "contextual_update", "text": "HUD is in focus mode"}
+        finally:
+            conversation.end_session()
