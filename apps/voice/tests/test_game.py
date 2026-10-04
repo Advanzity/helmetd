@@ -51,3 +51,9 @@ def test_inactive_tab_cannot_replace_active_ride_but_new_active_ride_can():
     with pytest.raises(ValueError): bridge.publish(packet(session='background',paused=True))
     bridge.publish(packet(session='active-tab',sequence=20))
     with pytest.raises(ValueError): bridge.publish(packet(sequence=2))
+
+
+def test_game_person_warnings_have_separate_direction_bits():
+    hud=Hud();bridge=GameBridge(hud)
+    bridge.publish(packet(warnings=['person_left','person_right','person_rear','person_front']))
+    assert hud.commands[0].endswith(' 0 240')

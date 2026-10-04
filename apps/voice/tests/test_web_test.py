@@ -236,3 +236,30 @@ def test_game_telemetry_requires_guard_and_rejects_reordered_packets(web):
     assert response.status_code == 200
     assert response.json()['source'] == 'game'
     assert web.client.post('/api/game/telemetry', json=packet, headers=web.headers).status_code == 409
+
+
+def test_game_camera_frames_require_active_session_and_exact_size(web):
+    url='/api/game/camera/left'
+    frame=bytes([10,20,30,255])*(640*360)
+    headers={**web.headers,'X-Game-Session':'ride'}
+    assert web.client.post(url, content=frame).status_code == 403
+    assert web.client.post(url, headers=headers, content=frame).status_code == 409
+    packet=dict(session='ride',sequence=1,paused=False,speed_mps=10,
+                gear=2,rpm=4000,signal='left',crashed=False,warnings=[])
+    assert web.client.post('/api/game/telemetry',headers=web.headers,json=packet).status_code == 200
+    assert web.client.post(url,headers=headers,content=frame).status_code == 200
+    target=web.map_path.parent/'game-camera-left.bgra'
+    assert target.read_bytes() == frame
+    assert web.client.post(url,headers=headers,content=frame[:-4]).status_code == 400
+    assert web.client.post(url,headers=headers,content=frame+b'x').status_code == 413
+    assert web.client.post(url,headers={**headers,'X-Game-Session':'old'},content=frame).status_code == 409
+    assert target.read_bytes() == frame
+    assert web.client.post('/api/game/camera/unknown',headers=headers,content=frame).status_code == 422
+
+
+def test_notification_presets_are_guarded_and_validated(web):
+    url='/api/hud'
+    assert web.client.post(url,json={'action':'notification','value':'messages'}).status_code==403
+    for value in ['messages','whatsapp','phone','music']:
+        assert web.client.post(url,headers=web.headers,json={'action':'notification','value':value}).status_code==200
+    assert web.client.post(url,headers=web.headers,json={'action':'notification','value':'unknown'}).status_code==400

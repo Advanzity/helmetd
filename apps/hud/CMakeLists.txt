@@ -83,3 +83,7 @@ target_compile_definitions(helmetd-hud PRIVATE HELMETD_SPRITE_PATH="${CMAKE_BINA
 configure_file("${PROJECT_SOURCE_DIR}/docs/design/hud/assets/notification-white-v1.png"
   "${CMAKE_BINARY_DIR}/bin/notification-white-v1.png" COPYONLY)
 target_compile_definitions(helmetd-hud PRIVATE HELMETD_NOTIFICATION_PATH="${CMAKE_BINARY_DIR}/bin/notification-white-v1.png")
+
+configure_file("${PROJECT_SOURCE_DIR}/docs/design/hud/assets/road-warnings-v1.png"
+  "${CMAKE_BINARY_DIR}/bin/road-warnings-v1.png" COPYONLY)
+target_compile_definitions(helmetd-hud PRIVATE HELMETD_ROAD_WARNING_PATH="${CMAKE_BINARY_DIR}/bin/road-warnings-v1.png")

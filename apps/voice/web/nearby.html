@@ -38,8 +38,16 @@
     <section class="places-section"><div class="results-heading"><h2>Places around you<span id="result-count" class="result-count">0</span></h2><span>Nearby · Straight-line distance</span></div><ul id="place-results"><li class="empty">Fuel, coffee, food and parking around you.</li></ul></section>
   </section>
   <details class="data-details"><summary>Location &amp; map data</summary><p class="privacy-note">Your location is used by Photon, Overpass and Valhalla to find places and routes. Your map area loads from USGS or OpenStreetMap, Mapterhorn terrain and OpenFreeMap buildings. Building heights may be estimated; imagery is not live. Coordinates stay out of voice context. Hazard reports save approximate locations locally for 15 minutes; sharing publishes them permanently to Solana devnet.</p></details>
+<section id="road-reports" aria-label="Road warnings and reports"><h2>Road warnings</h2><div class="warning-types"><div class="warning-type"><span class="warning-icon"><svg aria-hidden="true" viewBox="80 280 510 250"><image href="/assets/road-warnings-v1.png" width="1254" height="1254"/></svg>
+</span><strong>Pothole</strong><button data-road-warning="pothole">Show on HUD</button></div><div class="warning-type"><span class="warning-icon"><svg aria-hidden="true" viewBox="695 125 445 430"><image href="/assets/road-warnings-v1.png" width="1254" height="1254"/></svg>
+</span><strong>Debris</strong><button data-road-warning="debris">Show on HUD</button></div><div class="warning-type"><span class="warning-icon"><svg aria-hidden="true" viewBox="100 670 455 440"><image href="/assets/road-warnings-v1.png" width="1254" height="1254"/></svg>
+</span><strong>Roadworks</strong><button data-road-warning="roadworks">Show on HUD</button></div><div class="warning-type"><span class="warning-icon"><svg aria-hidden="true" viewBox="725 695 425 430"><image href="/assets/road-warnings-v1.png" width="1254" height="1254"/></svg>
+</span><strong>Slippery road</strong><button data-road-warning="slippery">Show on HUD</button></div></div><p id="road-warning-status" role="status" class="small">Send a five-second warning to the HUD.</p><button data-road-warning="off">Clear warning</button><div class="report-heading"><h3>Rider reports</h3><button id="refresh-road-reports">Refresh</button></div><p class="small">Press H in the game to report a pothole. Press M to see its map marker. Reports are shared across sessions on this console and expire after 24 hours.</p><p id="road-report-status" role="status">Loading reports…</p><ul id="road-report-list"></ul></section>
   <section class="helmet-controls" aria-label="Helmet camera controls">
     <h2>Helmet controls</h2>
+    <h3>Send notification</h3>
+    <div class="helmet-buttons" aria-label="Send HUD notification"><button data-send-notification="messages">Messages · Alex</button><button data-send-notification="whatsapp">WhatsApp · Jordan</button><button data-send-notification="phone">Phone · Sam</button><button data-send-notification="music">Music</button></div>
+    <p id="notification-send-status" class="small" role="status">App and sender appear on the right for 3 seconds. Hazard warnings take priority; Quiet mode hides notifications.</p>
     <div class="helmet-buttons"><button id="demo-sequence">Demo ride</button><button id="demo-sequence-pause" disabled>Pause</button><button id="demo-sequence-stop" disabled>Stop</button><button id="recover-helmet">Start / recover</button><button id="check-helmet">Check readiness</button></div>
     <p id="sequence-status" role="status" class="small">Guided visual preview · does not change your route.</p>
     <p id="readiness-status" role="status" class="small"></p>
@@ -79,5 +87,5 @@
     <div class="examples">“Find coffee nearby.”<br>“What's my next turn?” · “Find a fuel stop nearby.”<br>“Pause navigation.” · “Switch to focus mode.”</div>
   </section></div>
   <footer id="detail">Microphone stays off until you connect.</footer>
-</main><script src="/assets/elevenlabs.js"></script><script type="module" src="/assets/client.js"></script><script src="/assets/leaflet.js"></script><script type="module" src="/assets/nearby.js"></script><script type="module" src="/assets/helmet-controls.js"></script></body>
+</main><script src="/assets/elevenlabs.js"></script><script type="module" src="/assets/client.js"></script><script src="/assets/leaflet.js"></script><script type="module" src="/assets/nearby.js"></script><script type="module" src="/assets/helmet-controls.js"></script><script type="module" src="/assets/road-reports.js"></script></body>
 </html>

@@ -35,14 +35,16 @@ export function clipGroundAtRoads(world,polygon,options={}){
   if(options.matchHeight){const heights=polygon.map(p=>p[2]||0),low=Math.min(...heights),high=Math.max(...heights);
    if(Math.min(s.a[2],s.b[2])>high+1||Math.max(s.a[2],s.b[2])<low-1)continue;
   }
-  if(!s.groundClip){
-   const {a,b,len,road}=s,dx=(b[0]-a[0])/len,dy=(b[1]-a[1])/len,half=road.width/2,offset=road.pavementOffset||0;
-   s.groundClip=[[a,offset+half],[b,offset+half],[b,offset-half],[a,offset-half]].map(([p,o])=>[p[0]-dy*o,p[1]+dx*o]);
-   const cx=s.groundClip.map(p=>p[0]),cy=s.groundClip.map(p=>p[1]);s.groundClipBounds=[Math.min(...cx),Math.min(...cy),Math.max(...cx),Math.max(...cy)];
+  const margin=options.margin||0;
+  s.groundClips??=new Map();
+  if(!s.groundClips.has(margin)){
+   const {a,b,len,road}=s,dx=(b[0]-a[0])/len,dy=(b[1]-a[1])/len,halfA=(road.renderWidths?.[s.index-1]||road.width)/2+margin,halfB=(road.renderWidths?.[s.index]||road.width)/2+margin,offset=road.pavementOffset||0;
+   const fa=road.renderFrames?.[s.index-1]||[-dy,dx],fb=road.renderFrames?.[s.index]||[-dy,dx];
+   const clip=[[a,offset+halfA,fa],[b,offset+halfB,fb],[b,offset-halfB,fb],[a,offset-halfA,fa]].map(([p,o,f])=>[p[0]+f[0]*o,p[1]+f[1]*o]);
+   const cx=clip.map(p=>p[0]),cy=clip.map(p=>p[1]);s.groundClips.set(margin,{clip,bounds:[Math.min(...cx),Math.min(...cy),Math.max(...cx),Math.max(...cy)]});
   }
-  const cb=s.groundClipBounds;
+  const {clip,bounds:cb}=s.groundClips.get(margin);
   if(box[2]<=cb[0]||box[0]>=cb[2]||box[3]<=cb[1]||box[1]>=cb[3])continue;
-  const clip=s.groundClip;
   pieces=pieces.flatMap(p=>subtractConvex(p,clip));
   if(!pieces.length)break;
  }

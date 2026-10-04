@@ -2,14 +2,15 @@
 export function vehicleWarnings(p, cars) {
  const zones=new Set();
  for(const car of cars){
-  const q=car.obj?.position;if(!q||Math.abs(q.y-p.y)>2.5)continue;
+  const q=car.obj?.position;if(!q||car.obj.visible===false||Math.abs(q.y-p.y)>2.5)continue;
+  const zone=name=>car.kind==='person'?'person_'+name:name;
   const dx=q.x-p.x,dz=q.z-p.z;
   const forward=dx*Math.sin(p.heading)-dz*Math.cos(p.heading);
   const right=dx*Math.cos(p.heading)+dz*Math.sin(p.heading);
-  if(forward>-8&&forward<5&&Math.abs(right)>1.2&&Math.abs(right)<5)
-   zones.add(right<0?'left':'right');
-  if(Math.abs(right)<2.5&&forward>0&&forward<Math.max(8,p.speed*1.2))zones.add('front');
-  if(Math.abs(right)<2.5&&forward<0&&forward>-18)zones.add('rear');
+  if(forward>-14&&forward<10&&Math.abs(right)>1.5&&Math.abs(right)<8)
+   zones.add(zone(right<0?'left':'right'));
+  if(Math.abs(right)<3&&forward>0&&forward<Math.max(30,Math.abs(p.speed)*2))zones.add(zone('front'));
+  if(Math.abs(right)<3&&forward<0&&forward>-35)zones.add(zone('rear'));
  }
  return [...zones].sort();
 }
@@ -20,11 +21,12 @@ export class HelmetTelemetry {
  }
  toggle(side){this.signal=this.signal===side?'off':side;}
  reset(){this.held.clear();this.signal='off';this.session=crypto.randomUUID();this.sequence=0;}
- async update(now,p,cars,paused,navigation=null){
+ async update(now,p,cars,paused,navigation=null,pothole=false){
   if(this.busy||now-this.last<100)return;
   this.last=now;this.busy=true;
   if(paused)this.held.clear();
-  else for(const zone of vehicleWarnings(p,cars))this.held.set(zone,now+1000);
+  else for(const zone of vehicleWarnings(p,cars))this.held.set(zone,now+1800);
+  if(!paused&&pothole)this.held.set('pothole',now+1000);
   for(const [zone,until] of this.held)if(now>=until)this.held.delete(zone);
   const packet={session:this.session,sequence:++this.sequence,paused,
    speed_mps:Math.abs(p.speed),gear:p.reversing?-1:p.gear,rpm:p.rpm,

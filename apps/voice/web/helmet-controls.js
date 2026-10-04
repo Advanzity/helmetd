@@ -138,3 +138,12 @@ async function readiness(recover=false) {
 }
 document.getElementById('recover-helmet').addEventListener('click',()=>readiness(true));
 document.getElementById('check-helmet').addEventListener('click',()=>readiness());
+
+for(const button of document.querySelectorAll('[data-send-notification]'))button.addEventListener('click',async()=>{
+ const output=document.getElementById('notification-send-status');button.disabled=true;
+ try{
+  const response=await localFetch('/api/hud',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'notification',value:button.dataset.sendNotification}),signal:AbortSignal.timeout(3000)});
+  const state=await response.json();if(!response.ok||state.status!=='ok')throw Error('HUD unavailable. Use Start / recover, then retry.');
+  feedback(output,state.quiet?'Sent, but Quiet mode hides notifications. Select Ride view to show them.':'Sent to HUD · Look on the right. Active hazard alerts take priority.');
+ }catch(error){feedback(output,error.message,true);}finally{button.disabled=false;}
+});

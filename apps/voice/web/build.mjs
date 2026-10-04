@@ -79,3 +79,8 @@ await copyFile('helmet-audio.js', 'dist/helmet-audio.js');
 
 await copyFile('../../../docs/design/hud/assets/utility-icons-white-v1.png', 'dist/utility-icons-white-v1.png');
 await copyFile('../../../docs/design/hud/assets/notification-white-v1.png', 'dist/notification-white-v1.png');
+
+execFileSync(process.execPath, ['--check', 'road-reports.js']);
+await copyFile('road-reports.js', 'dist/road-reports.js');
+
+await copyFile('../../../docs/design/hud/assets/road-warnings-v1.png', 'dist/road-warnings-v1.png');

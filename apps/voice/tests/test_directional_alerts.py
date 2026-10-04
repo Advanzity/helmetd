@@ -70,3 +70,27 @@ def test_rear_vehicle_and_front_person_priority():
         assert gate.update(state, at) is None
     assert gate.update(state, 5) == ('rear', 'VEHICLE')
     assert gate.phrase(('rear', 'VEHICLE')) == 'Vehicle detected behind you.'
+
+
+def test_game_car_warnings_produce_debounced_directional_audio():
+    from helmetd_voice.directional_alerts import DirectionalAlerts
+    alerts=DirectionalAlerts()
+    status={'status':'ok','game_fresh':True,'game_warning_mask':1,'cameras':[]}
+    assert alerts.update(status,0) is None
+    assert alerts.update(status,.6)==('left','VEHICLE')
+    alerts.mark_spoken(('left','VEHICLE'),.6)
+    assert alerts.update(status,5) is None
+    status['game_warning_mask']=8
+    assert alerts.update(status,6) is None
+    assert alerts.update(status,6.6)==('front','VEHICLE')
+    assert alerts.phrase(('front','VEHICLE'))=='Vehicle detected ahead.'
+    status['game_fresh']=False
+    assert alerts.update(status,10) is None
+
+
+def test_game_people_take_priority_over_car_in_same_direction():
+    from helmetd_voice.directional_alerts import DirectionalAlerts
+    gate=DirectionalAlerts()
+    status={'status':'ok','game_fresh':True,'game_warning_mask':129,'cameras':[]}
+    assert gate.update(status,0) is None
+    assert gate.update(status,.6)==('front','PERSON')

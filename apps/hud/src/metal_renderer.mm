@@ -129,6 +129,7 @@ struct MetalRenderer::Impl {
   id<MTLTexture> map_texture;
   id<MTLTexture> symbol_texture;
   id<MTLTexture> notification_texture;
+  id<MTLTexture> road_warning_texture;
   double map_checked = 0;
   double map_modified = 0;
   std::vector<id<MTLTexture>> extra_textures;
@@ -188,6 +189,9 @@ struct MetalRenderer::Impl {
       error:&sprite_error];
     notification_texture = [loader newTextureWithContentsOfURL:[NSURL fileURLWithPath:@HELMETD_NOTIFICATION_PATH]
       options:@{MTKTextureLoaderOptionSRGB:@NO, MTKTextureLoaderOptionGenerateMipmaps:@YES} error:&sprite_error];
+    road_warning_texture = [loader newTextureWithContentsOfURL:[NSURL fileURLWithPath:@HELMETD_ROAD_WARNING_PATH]
+      options:@{MTKTextureLoaderOptionSRGB:@NO, MTKTextureLoaderOptionGenerateMipmaps:@YES} error:&sprite_error];
+    if (!road_warning_texture) throw std::runtime_error("Road warning atlas could not load");
     if (!notification_texture) throw std::runtime_error("Notification texture could not load");
     if (!symbol_texture) throw std::runtime_error("HUD symbol atlas could not load");
     map_texture = make_texture(device, 640, 360, MTLTextureUsageShaderRead, MTLStorageModeShared);
@@ -339,7 +343,7 @@ struct MetalRenderer::Impl {
   void camera_panel_view(const HudState& state, Time now) {
     constexpr float top = 432, width = 288, height = 162;
     auto view = state.active_signal(now);
-    if (view == "off") view = state.camera_view;
+    if (view == "off") view = state.game_fresh(now) && state.game.gear == -1 ? "rear" : state.camera_view;
     std::transform(view.begin(), view.end(), view.begin(), [](unsigned char c) { return std::toupper(c); });
     if (view == "AUTO") return;
     const float left = view == "RIGHT" ? 928.f : 64.f;
@@ -495,10 +499,10 @@ struct MetalRenderer::Impl {
     if (nav.simulated && !nav.from_game) text("ROUTE PREVIEW", 640, 103, 12, muted);
   }
 
-  void telemetry_panel_view(const HudState& state, Time now) {
+  void telemetry_panel_view(const HudState& state, Time now, bool show_advisory = true) {
     const auto advisory = state.display_advisory(now);
     const bool caution = advisory != Advisory::none;
-    if (caution || state.warning(now)) {
+    if (show_advisory && (caution || state.warning(now))) {
       const float prior_opacity = composition_opacity;
       if (caution && state.displayed_advisory_at) {
         const float age = std::chrono::duration<float>(now-*state.displayed_advisory_at).count();
@@ -553,6 +557,17 @@ struct MetalRenderer::Impl {
       text("VOICE OFF", 1090, 667, 13, muted);
   }
 
+  void road_warning_icon(int kind, float x, float y, float size) {
+    // Visible bounds in the ImageGen atlas, uniformly fitted to preserve aspect ratio.
+    constexpr float bounds[4][4] = {{80,280,510,250},{695,125,445,430},{100,670,455,440},{725,695,425,430}};
+    if (kind < 0 || kind >= 4) return;
+    const auto& b = bounds[kind];
+    const float scale = size / std::max(b[2], b[3]);
+    const float w = b[2] * scale, h = b[3] * scale;
+    quad(x+(size-w)*.5f, y+(size-h)*.5f, w, h, white, 9,
+         b[0]/1254.f, b[1]/1254.f, b[2]/1254.f, b[3]/1254.f);
+  }
+
   // Camera-relative cues, deliberately not world-position or collision estimates.
   bool directional_cues(const HudState& state, Time now) {
     bool alert = false;
@@ -564,10 +579,11 @@ struct MetalRenderer::Impl {
         text("RESET RIDE TO CONTINUE", 532, 399, 14, white);
         return true;
       }
-      if (game.warnings & 1) { symbol(0,22,316,28,42); text("VEHICLE",54,331,13,amber); }
-      if (game.warnings & 2) { symbol(1,1234,316,28,42); text("VEHICLE",1152,331,13,amber); }
-      if (game.warnings & 4) { symbol(2,600,548,46,42); text("VEHICLE BEHIND",540,593,14,amber); }
-      if (game.warnings & 8) { symbol(3,613,526,34,36); text("VEHICLE AHEAD",550,568,14,amber); }
+      if (game.warnings & 17) { symbol(0,22,316,28,42); text(game.warnings & 16 ? "PERSON" : "VEHICLE",54,331,13,amber); }
+      if (game.warnings & 34) { symbol(1,1234,316,28,42); text(game.warnings & 32 ? "PERSON" : "VEHICLE",1152,331,13,amber); }
+      if (game.warnings & 68) { symbol(2,600,548,46,42); text(game.warnings & 64 ? "PERSON BEHIND" : "VEHICLE BEHIND",540,593,14,amber); }
+      if (game.warnings & 136) { symbol(3,613,526,34,36); text(game.warnings & 128 ? "PERSON AHEAD" : "VEHICLE AHEAD",550,568,14,amber); }
+      if (game.warnings & 256) { road_warning_icon(0,613,448,36); text("POTHOLE AHEAD",550,491,14,amber); }
       alert = game.warnings != 0;
     }
     for (std::size_t i = 0; i < state.extra_cameras.size(); ++i) {
@@ -612,7 +628,7 @@ struct MetalRenderer::Impl {
     vertices.clear(); draws.clear();
     animation_time = elapsed;
     const auto signal = state.active_signal(now);
-    const auto view = signal == "off" ? state.camera_view : signal;
+    const auto view = signal == "off" ? (state.game_fresh(now) && state.game.gear == -1 ? std::string("rear") : state.camera_view) : signal;
     if (interaction_initialized) {
       if (view != prior_view) {
         notice = view == "auto" ? "RIDE VIEW" : view == "left" ? "LEFT CAMERA" :
@@ -665,7 +681,13 @@ struct MetalRenderer::Impl {
         preview.signal_until.reset();
         camera_panel_view(preview, now);
       }
-      if (cue == "turn") {
+      if (cue == "pothole" || cue == "debris" || cue == "roadworks" || cue == "slippery") {
+        const int kind=cue=="pothole"?0:cue=="debris"?1:cue=="roadworks"?2:3;
+        const char* label=kind==0?"POTHOLE AHEAD":kind==1?"DEBRIS AHEAD":kind==2?"ROADWORKS AHEAD":"SLIPPERY ROAD";
+        composition_opacity=ease_out(std::min(1.f,float((elapsed-cue_entered[3])/.22)));
+        road_warning_icon(kind,610,448,42);text(label,540,504,18,amber);
+        composition_opacity=1;
+      } else if (cue == "turn") {
         symbol(4, 548, 35, 66, 70);
         text("800 FT", 640, 36, 30, white);
         text("Oak Street", 640, 76, 16, white);
@@ -686,6 +708,7 @@ struct MetalRenderer::Impl {
       if (state.panels & navigation_panel) navigation_panel_view(state, now);
       if (state.panels & telemetry_panel) telemetry_panel_view(state, now);
     } else if (state.panels) {
+      if (state.panels & telemetry_panel) telemetry_panel_view(state, now, false);
       if (state.panels & navigation_panel) navigation_panel_view(state, now);
       if (!state.quiet) {
         text("helmetd", 32, 22, 24, white);
@@ -826,7 +849,7 @@ std::span<const std::uint8_t> MetalRenderer::render(const HudState& state, const
     auto draw_hud = [&](id<MTLRenderCommandEncoder> encoder) {
     for (const auto& draw : r.draws) {
       [encoder setFragmentBytes:&draw.texture length:sizeof(draw.texture) atIndex:0];
-      const auto texture = draw.texture == 8 ? r.notification_texture : draw.texture == 7 ? r.symbol_texture : draw.texture == 6 ? r.map_texture : draw.texture >= 3 ? r.extra_textures[draw.texture - 3] :
+      const auto texture = draw.texture == 9 ? r.road_warning_texture : draw.texture == 8 ? r.notification_texture : draw.texture == 7 ? r.symbol_texture : draw.texture == 6 ? r.map_texture : draw.texture >= 3 ? r.extra_textures[draw.texture - 3] :
           draw.texture == 2 ? r.camera_texture : r.atlas;
       [encoder setFragmentTexture:texture atIndex:0];
       [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:draw.first vertexCount:draw.count];

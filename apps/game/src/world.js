@@ -1,9 +1,11 @@
+import {roadFrames,prepareRoadFrames,roadSection} from './road-frame.js';
+import {prepareRoadWidths} from './road-widths.js';
 import {addBuildings} from './buildings.js';
 import {clipGroundAtRoads} from './ground-geometry.js';
 import {laneCenter} from './road-layout.js';
 import * as T from 'three';import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 export class World{
- constructor(data){this.data=data;this.grid=new Map();this.nodeDegree=new Map();this.segments=[];this.buildingGrid=new Map();this.circleGrid=new Map();for(const c of data.turningCircles||[]){for(let x=Math.floor((c.point[0]-c.radius)/50);x<=Math.floor((c.point[0]+c.radius)/50);x++)for(let y=Math.floor((c.point[1]-c.radius)/50);y<=Math.floor((c.point[1]+c.radius)/50);y++){const k=x+','+y;if(!this.circleGrid.has(k))this.circleGrid.set(k,[]);this.circleGrid.get(k).push(c)}}for(const road of data.roads){road.bounds=[Math.min(...road.points.map(p=>p[0])),Math.min(...road.points.map(p=>p[1])),Math.max(...road.points.map(p=>p[0])),Math.max(...road.points.map(p=>p[1]))];road.length=0;road.distances=[0];for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<.01)continue;const s={a,b,len,road,index:i};for(const node of [road.nodeIds[i-1],road.nodeIds[i]])this.nodeDegree.set(node,(this.nodeDegree.get(node)||0)+1);this.segments.push(s);road.length+=len;road.distances.push(road.length);for(let x=Math.floor((Math.min(a[0],b[0])-Math.max(road.width,40))/50);x<=Math.floor((Math.max(a[0],b[0])+Math.max(road.width,40))/50);x++)for(let y=Math.floor((Math.min(a[1],b[1])-Math.max(road.width,40))/50);y<=Math.floor((Math.max(a[1],b[1])+Math.max(road.width,40))/50);y++){const key=x+','+y;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(s)}}}
+ constructor(data){prepareRoadWidths(data.roads);prepareRoadFrames(data.roads);this.data=data;this.grid=new Map();this.nodeDegree=new Map();this.segments=[];this.buildingGrid=new Map();this.circleGrid=new Map();for(const c of data.turningCircles||[]){for(let x=Math.floor((c.point[0]-c.radius)/50);x<=Math.floor((c.point[0]+c.radius)/50);x++)for(let y=Math.floor((c.point[1]-c.radius)/50);y<=Math.floor((c.point[1]+c.radius)/50);y++){const k=x+','+y;if(!this.circleGrid.has(k))this.circleGrid.set(k,[]);this.circleGrid.get(k).push(c)}}for(const road of data.roads){road.bounds=[Math.min(...road.points.map(p=>p[0])),Math.min(...road.points.map(p=>p[1])),Math.max(...road.points.map(p=>p[0])),Math.max(...road.points.map(p=>p[1]))];road.length=0;road.distances=[0];for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]);if(len<.01)continue;const s={a,b,len,road,index:i};for(const node of [road.nodeIds[i-1],road.nodeIds[i]])this.nodeDegree.set(node,(this.nodeDegree.get(node)||0)+1);this.segments.push(s);road.length+=len;road.distances.push(road.length);for(let x=Math.floor((Math.min(a[0],b[0])-Math.max(road.width,40))/50);x<=Math.floor((Math.max(a[0],b[0])+Math.max(road.width,40))/50);x++)for(let y=Math.floor((Math.min(a[1],b[1])-Math.max(road.width,40))/50);y<=Math.floor((Math.max(a[1],b[1])+Math.max(road.width,40))/50);y++){const key=x+','+y;if(!this.grid.has(key))this.grid.set(key,[]);this.grid.get(key).push(s)}}}
  for(const b of data.buildings){const xs=b.points.map(p=>p[0]),ys=b.points.map(p=>p[1]);b.bounds=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];for(let x=Math.floor(b.bounds[0]/50);x<=Math.floor(b.bounds[2]/50);x++)for(let y=Math.floor(b.bounds[1]/50);y<=Math.floor(b.bounds[3]/50);y++){const k=x+','+y;if(!this.buildingGrid.has(k))this.buildingGrid.set(k,[]);this.buildingGrid.get(k).push(b)}}
  }
  elevation(x,z){if((Math.abs(x)>1700||Math.abs(z)>1700)&&this.data.outerTerrain){const d=this.data.outerTerrain,b=d.bounds,u=T.MathUtils.clamp((x-b[0])/(b[2]-b[0])*(d.nx-1),0,d.nx-1.001),v=T.MathUtils.clamp((-z-b[1])/(b[3]-b[1])*(d.ny-1),0,d.ny-1.001),i=Math.floor(u),j=Math.floor(v),a=u-i,c=v-j,h=d.heights,n=d.nx;return h[j*n+i]*(1-a)*(1-c)+h[j*n+i+1]*a*(1-c)+h[(j+1)*n+i]*(1-a)*c+h[(j+1)*n+i+1]*a*c}const d=this.data,n=d.resolution,u=T.MathUtils.clamp((x/d.size+.5)*(n-1),0,n-1.001),v=T.MathUtils.clamp((-z/d.size+.5)*(n-1),0,n-1.001),i=Math.floor(u),j=Math.floor(v),a=u-i,b=v-j,h=d.heights;return h[j*n+i]*(1-a)*(1-b)+h[j*n+i+1]*a*(1-b)+h[(j+1)*n+i]*(1-a)*b+h[(j+1)*n+i+1]*a*b}
@@ -21,20 +23,35 @@ export class World{
  const n=this.data.resolution,d=this.data,verts=[],uv=[],indices=[],colors=[];
  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=(i/(n-1)-.5)*d.size,z=-(j/(n-1)-.5)*d.size;let h=d.heights[j*n+i];const road=this.roadAt(x,z);if(road&&!road.road.bridge){const a=T.MathUtils.clamp((road.distance-road.road.width/2)/5,0,1);h=h*a+(road.height-.09)*(1-a)}verts.push(x,h,z);uv.push(i/(n-1),j/(n-1));const c=new T.Color().setHSL(.19+Math.sin(x*.03)*.008,.19,.24+Math.sin(x*.013+z*.027)*.025);colors.push(c.r,c.g,c.b);if(i<n-1&&j<n-1){const a=j*n+i;indices.push(a,a+1,a+n,a+1,a+n+1,a+n)}}
  let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(verts,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
- g=carveGroundGeometry(this,g);let terrainMaterial;if(this.data.aerialTexture===false)terrainMaterial=new T.MeshStandardMaterial({color:0x7b806f,roughness:1,side:T.DoubleSide});else{const aerial=await texture('aerial.jpg');aerial.wrapS=aerial.wrapT=T.ClampToEdgeWrapping;terrainMaterial=new T.MeshStandardMaterial({map:aerial,roughness:1,color:0x92998b,side:T.DoubleSide})}const terrain=new T.Mesh(g,terrainMaterial);terrain.receiveShadow=true;scene.add(terrain);
+ g=carveGroundGeometry(this,g,{margin:.6});let terrainMaterial;
+ if(this.data.aerialTexture===false){
+  // Use the same world-space grass scale as mapped land, including gaps between parcels.
+  const positions=g.getAttribute('position'),groundUV=g.getAttribute('uv');
+  for(let i=0;i<positions.count;i++)groundUV.setXY(i,positions.getX(i)/3,-positions.getZ(i)/3);
+  const [map,normalMap,roughnessMap]=await Promise.all([texture('grass-color.jpg'),texture('grass-normal.jpg',false),texture('grass-roughness.jpg',false)]);
+  terrainMaterial=new T.MeshStandardMaterial({map,normalMap,roughnessMap,normalScale:new T.Vector2(.5,.5),color:0xb6bc8c,roughness:1,side:T.DoubleSide});
+ }else{const aerial=await texture('aerial.jpg');aerial.wrapS=aerial.wrapT=T.ClampToEdgeWrapping;terrainMaterial=new T.MeshStandardMaterial({map:aerial,roughness:1,color:0x92998b,side:T.DoubleSide})}
+ const terrain=new T.Mesh(g,terrainMaterial);terrain.receiveShadow=true;scene.add(terrain);
  if(this.data.simpleBuildings&&this.data.buildings.length)this.updateSimpleBuildings=await addBuildings(scene,this);
  const bounds=this.data.bounds;if(bounds&&this.data.outerTerrain){const geo=outerTerrainGeometry(this);const grass=await texture('grass-color.jpg');addTerrainTiles(scene,geo,new T.MeshStandardMaterial({map:grass,color:0x9a9d76,roughness:1}));}
 
  const groups=[[],[],[],[]];const stripe=[[],[]];const curbs=[],walks=[];
- const quad=roadStrip;for(const road of this.data.roads){groups[2].push(roadRibbon(road.points,road.width+1.2,road.pavementOffset||0,-.045));const pavement=roadRibbon(road.points,road.width,road.pavementOffset||0);groups[road.surface==='concrete'?1:0].push(road.surface==='concrete'&&!road.bridge?carveGroundGeometry(this,pavement,{excludeRoad:road,matchHeight:true,roadFilter:r=>r.surface!=='concrete'}):pavement);}
+ const quad=roadStrip;for(const road of this.data.roads){groups[2].push(roadRibbon(road.points,road.renderWidths?.map(w=>w+1.2)||road.width+1.2,road.pavementOffset||0,-.045,road.renderFrames));const pavement=roadRibbon(road.points,road.renderWidths||road.width,road.pavementOffset||0,0,road.renderFrames);groups[road.surface==='concrete'?1:0].push(road.surface==='concrete'&&!road.bridge?carveGroundGeometry(this,pavement,{excludeRoad:road,matchHeight:true,roadFilter:r=>r.surface!=='concrete'}):pavement);}
  for(const s of this.segments){const {a,b,len,road}=s;
  const markStart=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,markEnd=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,markA=a.map((v,k)=>v+(b[k]-v)*markStart/len),markB=b.map((v,k)=>v-(b[k]-a[k])*markEnd/len);
  if(road.curb&&road.class!=='service'){const start=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,end=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,pa=a.map((v,k)=>v+(b[k]-v)*start/len),pb=b.map((v,k)=>v-(b[k]-a[k])*end/len);for(const side of [-1,1]){curbs.push(carveGroundGeometry(this,curbRibbon([pa,pb],side*(road.width/2-.10)),{excludeRoad:road,matchHeight:true}));if(['residential','tertiary','unclassified'].includes(road.class))walks.push(carveGroundGeometry(this,roadRibbon([pa,pb],1.52,side*(road.width/2+2.25),.12),{matchHeight:true}))}}
  if(['service','residential','living_street'].includes(road.class))continue;
  const laneWidth=road.laneWidth||3.35,usable=road.lanes*laneWidth;
- for(const edge of [-1,1]){const q=quad(markA,markB,.12,edge*usable/2,.018);if(q)stripe[road.oneway&&edge<0?1:0].push(q)}
- if(!road.oneway){for(const offset of road.lanes%2?[-laneWidth/2,laneWidth/2]:[-.10,.10]){const q=quad(markA,markB,.10,offset,.021);if(q)stripe[1].push(q)}}
- for(let lane=1;lane<road.lanes;lane++){const offset=-usable/2+lane*laneWidth;if(!road.oneway&&(Math.abs(offset)<.3||road.lanes%2&&Math.abs(Math.abs(offset)-laneWidth/2)<.1))continue;for(let at=markStart;at<len-markEnd;at+=12){const end=Math.min(at+3,len-markEnd),pa=a.map((v,k)=>v+(b[k]-v)*at/len),pb=a.map((v,k)=>v+(b[k]-v)*end/len);const q=quad(pa,pb,.12,offset,.02);if(q)stripe[0].push(q)}}
+ for(const edge of [-1,1]){const wa=road.renderWidths?.[s.index-1]||road.width,wb=road.renderWidths?.[s.index]||road.width;const startWidth=wa+(wb-wa)*markStart/len,endWidth=wb-(wb-wa)*markEnd/len;const q=roadPaint(road,s.index,markStart/len,1-markEnd/len,.12,(road.pavementOffset||0)+edge*(startWidth-1)/2,(road.pavementOffset||0)+edge*(endWidth-1)/2);if(q)stripe[road.oneway&&edge<0?1:0].push(q)}
+ const medianA=road.medianWidths?.[s.index-1]??(road.lanes%2?laneWidth/2:.1),medianB=road.medianWidths?.[s.index]??(road.lanes%2?laneWidth/2:.1);
+ const median=t=>medianA+(medianB-medianA)*t;
+ if(!road.oneway)for(const side of [-1,1])stripe[1].push(roadPaint(road,s.index,markStart/len,1-markEnd/len,.10,side*median(markStart/len),side*median(1-markEnd/len),.021));
+ const dividers=road.oneway?Array.from({length:Math.max(0,road.lanes-1)},(_,i)=>({offset:-usable/2+(i+1)*laneWidth})):Array.from({length:Math.max(0,Math.floor(road.lanes/2)-1)},(_,i)=>i+1).flatMap(lane=>[-1,1].map(side=>({lane,side})));
+ for(const divider of dividers)for(let at=markStart-((road.distances[s.index-1]+markStart)%12);at<len-markEnd;at+=12){
+  const end=Math.min(at+3,len-markEnd);if(end<=markStart)continue;const ta=Math.max(at,markStart)/len,tb=end/len;
+  const offset=t=>divider.offset??divider.side*(Math.max(0,median(t)-.1)/(laneWidth/2-.1)*(laneWidth/2)+divider.lane*laneWidth);
+  stripe[0].push(roadPaint(road,s.index,ta,tb,.12,offset(ta),offset(tb)));
+ }
 
  }
  addTiles(scene,curbs,concrete);addTiles(scene,walks,concrete);
@@ -75,7 +92,16 @@ buildings.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;for(c
 export function roadStrip(a,b,width,offset=0,raise=0){const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<.01)return null;const nx=-dy/len,ny=dx/len;const v=[];for(const [p,s] of [[a,-1],[b,-1],[a,1],[b,1]])v.push(p[0]+nx*(offset+s*width/2),p[2]+raise,-p[1]-ny*(offset+s*width/2));const q=new T.BufferGeometry();q.setAttribute('position',new T.Float32BufferAttribute(v,3));q.setAttribute('uv',new T.Float32BufferAttribute([0,0,len/5,0,0,width/5,len/5,width/5],2));q.setIndex([0,1,2,1,3,2]);q.computeVertexNormals();return q}
 
 // Shared vertices eliminate cracks at bends; capped miters avoid spikes.
-export function roadRibbon(points,width,offset=0,raise=0){const vertices=[],uv=[],indices=[];let distance=0;for(let i=0;i<points.length;i++){const p=points[i],a=points[Math.max(0,i-1)],b=points[Math.min(points.length-1,i+1)];if(i)distance+=Math.hypot(p[0]-a[0],p[1]-a[1]);let dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;const next=points[Math.min(points.length-1,i+1)],prev=points[Math.max(0,i-1)];const ex=i<points.length-1?next[0]-p[0]:p[0]-prev[0],ey=i<points.length-1?next[1]-p[1]:p[1]-prev[1],el=Math.hypot(ex,ey)||1,miter=Math.min(1.7,1/Math.max(.59,Math.abs(dx*ex/el+dy*ey/el)));for(const side of [-1,1]){const o=(offset+side*width/2)*miter;vertices.push(p[0]-dy*o,p[2]+raise,-p[1]-dx*o);uv.push((p[0]-dy*o)/5,(-p[1]-dx*o)/5)}if(i){const k=(i-1)*2;indices.push(k,k+2,k+1,k+2,k+3,k+1)}}const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(vertices,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g}
+export function roadRibbon(points,width,offset=0,raise=0,frames=roadFrames(points)){
+ const vertices=[],uv=[],indices=[];
+ for(let i=0;i<points.length;i++){const p=points[i],f=frames[i];for(const side of [-1,1]){const o=offset+side*(Array.isArray(width)?width[i]:width)/2,x=p[0]+f[0]*o,z=-p[1]-f[1]*o;vertices.push(x,p[2]+raise,z);uv.push(x/5,z/5)}if(i){const k=(i-1)*2;indices.push(k,k+2,k+1,k+2,k+3,k+1)}}
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(vertices,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();return g;
+}
+export function roadPaint(road,index,start,end,width,offsetA,offsetB=offsetA,raise=.02){
+ const v=[];for(const [t,o] of [[start,offsetA],[end,offsetB]])for(const side of [-1,1]){const p=roadSection(road,index,t,o+side*width/2);v.push(p[0],p[2]+raise,-p[1])}
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setAttribute('uv',new T.Float32BufferAttribute([0,0,1,0,0,1,1,1],2));g.setIndex([0,2,1,2,3,1]);g.computeVertexNormals();return g;
+}
+
 export function curbRibbon(points,offset){const top=roadRibbon(points,.22,offset,.14),p=top.getAttribute('position'),v=Array.from(p.array),indices=Array.from(top.index.array),count=p.count;for(let i=0;i<count;i++)v.push(p.getX(i),p.getY(i)-.15,p.getZ(i));for(let i=0;i<count-2;i+=2){indices.push(i,i+count,i+2,i+2,i+count,i+count+2,i+1,i+3,i+count+1,i+3,i+count+3,i+count+1)}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));const uv=Array.from(top.getAttribute('uv').array);geo.setAttribute('uv',new T.Float32BufferAttribute([...uv,...uv],2));geo.setIndex(indices);geo.computeVertexNormals();top.dispose();return geo}
 
 function addTiles(scene,list,material){const tiles=new Map();for(const g of list){g.computeBoundingBox();const c=g.boundingBox.getCenter(new T.Vector3()),key=Math.floor(c.x/300)+','+Math.floor(c.z/300);if(!tiles.has(key))tiles.set(key,[]);tiles.get(key).push(g)}for(const parts of tiles.values()){const g=mergeGeometries(parts);g.computeBoundingSphere();const mesh=new T.Mesh(g,material);mesh.receiveShadow=true;scene.add(mesh);parts.forEach(p=>p.dispose())}}
@@ -123,4 +149,11 @@ export function carveGroundGeometry(world,source,options={}){
   }
  }
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setAttribute('uv',new T.Float32BufferAttribute(u,2));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.setIndex(indices);source.dispose();return g;
+}
+
+export function roadEdgeStrip(a,b,startOffset,endOffset){
+ const g=roadStrip(a,b,.12,startOffset,.018);if(!g)return null;
+ const p=g.getAttribute('position'),dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy),delta=endOffset-startOffset;
+ for(const i of [1,3])p.setXYZ(i,p.getX(i)-dy/len*delta,p.getY(i),p.getZ(i)-dx/len*delta);
+ return g;
 }

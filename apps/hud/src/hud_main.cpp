@@ -7,6 +7,10 @@
 #include "voice_events.hpp"
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <map>
+#include <cctype>
 #include <csignal>
 #include <iomanip>
 #include <iostream>
@@ -96,7 +100,7 @@ int main(int argc, char** argv) {
           status.received_at = frame.received_at;
           ++status.frames;
           renderer.update_extra_camera(i, frame);
-          if (side_detectors[i] && now >= side_next[i] && side_detectors[i]->error().empty()) {
+          if (!state.game_fresh(now) && side_detectors[i] && now >= side_next[i] && side_detectors[i]->error().empty()) {
             side_detectors[i]->submit(frame);
             side_next[i] = now + std::chrono::milliseconds(200);
           }
@@ -117,7 +121,7 @@ int main(int argc, char** argv) {
       // Drain even during a simulated stall, retaining no stale backlog.
       bool updated = camera.poll(input_frame) && state.camera_enabled;
       if (detector && !state.perception_failed) {
-        if (updated && now >= next_detection) {
+        if (!state.game_fresh(now) && updated && now >= next_detection) {
           detector->submit(input_frame);
           next_detection = now + std::chrono::milliseconds(200);
         }
@@ -159,6 +163,39 @@ int main(int argc, char** argv) {
       }
       const auto before_render = Clock::now();
       control.poll(state, before_render, options);
+      if (state.game_fresh(before_render)) {
+        const auto directory = std::filesystem::path(options.control_socket).parent_path();
+        auto read_game = [&](const std::string& label, CameraFrame& frame) {
+          const auto path = directory / ("game-camera-" + label + ".bgra");
+          std::error_code error;
+          const auto stamp = std::filesystem::last_write_time(path, error);
+          if (error || std::filesystem::file_time_type::clock::now()-stamp > std::chrono::milliseconds(1500)) return false;
+          std::ifstream input(path, std::ios::binary);
+          frame.bgra.resize(CameraFrame::width * CameraFrame::height * 4);
+          if (!input.read(reinterpret_cast<char*>(frame.bgra.data()), frame.bgra.size())) return false;
+          frame.received_at = before_render;
+          return true;
+        };
+        updated = read_game("front", camera_frame);
+        if (updated) {
+          state.camera_at = before_render;
+          if (detector && !state.perception_failed && now >= next_detection) {
+            detector->submit(camera_frame);next_detection=now+std::chrono::milliseconds(200);
+          }
+        } else state.camera_at.reset();
+        for (std::size_t i=0; i<state.extra_cameras.size(); ++i) {
+          std::string label=options.extra_cameras[i].label;
+          std::transform(label.begin(),label.end(),label.begin(),[](unsigned char c){return std::tolower(c);});
+          CameraFrame frame;
+          if (read_game(label,frame)) {
+            renderer.update_extra_camera(i,frame);state.extra_cameras[i].received_at=before_render;state.extra_cameras[i].failed=false;
+            if (side_detectors[i] && now >= side_next[i] && side_detectors[i]->error().empty()) {
+              side_detectors[i]->submit(frame);side_next[i]=now+std::chrono::milliseconds(200);
+            }
+          }
+          else state.extra_cameras[i].received_at.reset();
+        }
+      }
       voice_events.publish(state, before_render);
       if (state.camera_fresh(before_render)) ++visible_camera_frames;
       const auto elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(before_render - started).count();

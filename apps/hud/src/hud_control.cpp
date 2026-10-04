@@ -30,7 +30,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
                 >> crashed >> game.warnings) || (input >> extra) ||
         active < 0 || active > 1 || crashed < 0 || crashed > 1 ||
         game.speed_mph < 0 || game.speed_mph > 336 || game.gear < -1 || game.gear > 6 ||
-        game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 15 ||
+        game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 511 ||
         (game.signal != "off" && game.signal != "left" && game.signal != "right")) return error();
     game.active = active;
     game.crashed = active && crashed;
@@ -116,7 +116,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
   } else if (command == "diagnostics" && setting.empty() && (value == "on" || value == "off")) {
     state.diagnostics = value == "on";
   } else if (command == "preview" && setting.empty() &&
-      (value == "left" || value == "right" || value == "rear" || value == "person" || value == "turn" || value == "message" || value == "off")) {
+      (value == "left" || value == "right" || value == "rear" || value == "person" || value == "turn" || value == "message" || value == "pothole" || value == "debris" || value == "roadworks" || value == "slippery" || value == "off")) {
     state.alert_preview = value;
     state.alert_preview_at = now;
   } else if (command == "notification" && !value.empty() && !setting.empty() &&
@@ -160,7 +160,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
   };
   out << std::boolalpha << "{\"request_id\":\"" << id << "\",\"status\":\"ok\","
       << "\"panels\":" << state.panels << ",\"diagnostics\":" << state.diagnostics << ",\"quiet\":" << state.quiet
-      << ",\"camera_source\":\"" << options.camera << "\",\"camera_fresh\":" << state.camera_fresh(now)
+      << ",\"camera_source\":\"" << (state.game_fresh(now) ? "game" : options.camera) << "\",\"camera_fresh\":" << state.camera_fresh(now)
       << ",\"detection_enabled\":" << state.perception_enabled
       << ",\"detection_failed\":" << state.perception_failed
       << ",\"detection_fresh\":" << fresh << ",\"frame_age_ms\":";

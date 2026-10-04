@@ -20,3 +20,14 @@ test('bounded bridge sends paused clear state and reports HUD availability',asyn
  assert.equal(sent[1].signal,'off');assert.deepEqual(sent[1].warnings,[]);
  assert.equal(bridge.connected,true);
 });
+
+test('traffic detection covers nearby lanes and ignores recycled hidden cars',()=>{
+ assert.deepEqual(vehicleWarnings(p,[car(0,-25),car(-6,-5),car(6,5),car(0,30)]),['front','left','rear','right']);
+ const hidden=car(0,-5);hidden.obj.visible=false;
+ assert.deepEqual(vehicleWarnings(p,[hidden,car(0,-25,10),car(0,-100)]),[]);
+});
+
+test('people use separate directional warnings from cars',()=>{
+ const person=(x,z)=>({...car(x,z),kind:'person'});
+ assert.deepEqual(vehicleWarnings(p,[person(-6,0),person(6,0),person(0,10),person(0,-15),car(0,-20)]),['front','person_front','person_left','person_rear','person_right']);
+});

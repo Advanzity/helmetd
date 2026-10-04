@@ -13,6 +13,15 @@ class DirectionalAlerts:
         active = set()
         cameras = camera_observations(status) if status.get('status') == 'ok' else []
         live = {c['camera'] for c in cameras if c['video_fresh']}
+        if status.get('status') == 'ok' and status.get('game_fresh'):
+            mask = status.get('game_warning_mask', 0)
+            if mask & 256: active.add(('front', 'POTHOLE'))
+            live.update(('left', 'right', 'rear', 'front'))
+            for side, bit in (('left', 1), ('right', 2), ('rear', 4), ('front', 8)):
+                if mask & (bit << 4):
+                    active.add((side, 'PERSON'))
+                elif mask & bit:
+                    active.add((side, 'VEHICLE'))
         for key in list(self.seen):
             if key[0] not in live:
                 del self.seen[key]
@@ -44,7 +53,8 @@ class DirectionalAlerts:
 
     def phrase(self, key):
         side, label = key
-        suffix = {'front': '', 'rear': ' behind you', 'left': ' on the left', 'right': ' on the right'}[side]
+        if label == 'POTHOLE': return 'Pothole ahead.'
+        suffix = {'front': ' ahead' if label == 'VEHICLE' else '', 'rear': ' behind you', 'left': ' on the left', 'right': ' on the right'}[side]
         return f'{label.capitalize()} detected{suffix}.'
 
     def mark_spoken(self, key, now):

@@ -72,3 +72,57 @@ test('surface clipping retains grade-separated geometry and handles nonindexed p
  const nonindexed=source.toNonIndexed(),result=carveGroundGeometry(world,nonindexed,{matchHeight:true});
  assert.equal(result.index.count,6);result.dispose();source.dispose();
 });
+
+test('terrain clears the asphalt shoulder without changing pavement clipping',()=>{
+ const world=makeWorld(false),polygon=[[-10,-10,0],[10,-10,0],[10,10,0],[-10,10,0]];
+ const shoulder=clipGroundAtRoads(world,polygon,{margin:.6});
+ assert.ok(Math.abs(shoulder.reduce((sum,p)=>sum+area(p),0)-296)<1e-6);
+ const pavement=clipGroundAtRoads(world,polygon);
+ assert.ok(Math.abs(pavement.reduce((sum,p)=>sum+area(p),0)-320)<1e-6);
+ assert.deepEqual(clipGroundAtRoads(world,polygon,{margin:.6}),shoulder);
+});
+
+test('adjoining avenue widths join without rectangular grass notches',async()=>{
+ const {prepareRoadWidths}=await import('../src/road-widths.js');
+ const wide={name:'Avenue',class:'primary',width:18,points:[[0,0,0],[0,20,0]],nodeIds:['a','b']};
+ const narrow={name:'Avenue',class:'primary',width:14,points:[[0,20,0],[0,30,0],[0,60,0]],nodeIds:['b','c','d']};
+ prepareRoadWidths([wide,narrow]);
+ assert.deepEqual(narrow.renderWidths,[18,16.4,14]);
+ assert.equal(narrow.width,14);
+ const w=new World({roads:[wide,narrow],buildings:[]});
+ const pieces=clipGroundAtRoads(w,[[7.1,20.1,0],[8.9,20.1,0],[8.9,21,0],[7.1,21,0]]);
+ assert.equal(pieces.length,0);
+ const {roadEdgeStrip}=await import('../src/world.js');
+ const p=roadEdgeStrip(narrow.points[0],narrow.points[1],8.5,7.7).getAttribute('position');
+ assert.ok(Math.abs((p.getX(1)+p.getX(3))/2+7.7)<1e-6);
+});
+
+test('pavement and edge paint use identical joins at unevenly spaced bends',async()=>{
+ const {roadRibbon,roadPaint}=await import('../src/world.js');
+ const road={name:'Curve',class:'primary',width:10,points:[[0,0,0],[0,3,0],[10,20,0]],nodeIds:['a','b','c']};
+ new World({roads:[road],buildings:[]});
+ const pavement=roadRibbon(road.points,10,0,0,road.renderFrames).getAttribute('position');
+ const incoming=roadPaint(road,1,0,1,.12,4.94).getAttribute('position');
+ const outgoing=roadPaint(road,2,0,1,.12,4.94).getAttribute('position');
+ for(const axis of ['getX','getZ']){
+  assert.ok(Math.abs(incoming[axis](3)-pavement[axis](3))<1e-6);
+  assert.ok(Math.abs(incoming[axis](3)-outgoing[axis](1))<1e-6);
+ }
+});
+
+test('same-street endpoints share a cross-section through a slight bend',()=>{
+ const a={name:'Curve',class:'primary',width:10,points:[[0,0,0],[0,10,0]],nodeIds:['a','b']};
+ const b={name:'Curve',class:'primary',width:10,points:[[0,10,0],[2,30,0]],nodeIds:['b','c']};
+ new World({roads:[a,b],buildings:[]});
+ assert.deepEqual(a.renderFrames[1],b.renderFrames[0]);
+});
+
+test('four-to-five lane center markings meet at the same offsets',async()=>{
+ const {prepareRoadWidths}=await import('../src/road-widths.js');
+ const a={name:'Avenue',class:'primary',width:14.4,lanes:4,laneWidth:3.35,points:[[0,0,0],[0,30,0]],nodeIds:['a','b']};
+ const b={name:'Avenue',class:'primary',width:17.75,lanes:5,laneWidth:3.35,points:[[0,30,0],[0,60,0]],nodeIds:['b','c']};
+ prepareRoadWidths([a,b]);
+ assert.equal(a.medianWidths[0],.1);
+ assert.equal(a.medianWidths[1],b.medianWidths[0]);
+ assert.equal(b.medianWidths[0],1.675);
+});

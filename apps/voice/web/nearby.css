@@ -55,3 +55,5 @@ button[aria-busy=true]::after{content:"";position:absolute;right:12px;top:calc(5
 #demo-sequence-stop::before,[data-alert-preview="off"]::before{background-position:100% 100%}
 [data-alert-preview="message"]::before{background-image:url('/assets/notification-white-v1.png');background-size:contain;background-position:center}
 #connect.primary::before{mix-blend-mode:normal;filter:brightness(.2)}
+
+.warning-types{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:24px 0}.warning-type{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.warning-icon{display:grid;place-items:center;width:54px;height:54px;background:#171b1b;border-radius:12px}.warning-icon svg{width:34px;height:34px}.warning-type small{opacity:.6;font-size:12px}.report-heading{display:flex;align-items:center;justify-content:space-between}#road-report-list{padding:0;list-style:none}#road-report-list li{padding:12px 0;border-bottom:1px solid #8883;display:flex;justify-content:space-between;gap:16px}@media(max-width:550px){.warning-types{grid-template-columns:repeat(2,1fr)}}

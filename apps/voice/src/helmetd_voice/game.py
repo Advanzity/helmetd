@@ -30,7 +30,7 @@ class GamePacket(BaseModel):
     rpm: float = Field(ge=0, le=20000, allow_inf_nan=False)
     signal: Literal['off', 'left', 'right']
     crashed: bool
-    warnings: list[Literal['left', 'right', 'rear', 'front']] = Field(max_length=4)
+    warnings: list[Literal['left', 'right', 'rear', 'front', 'person_left', 'person_right', 'person_rear', 'person_front', 'pothole']] = Field(max_length=9)
 
 
 class GameBridge:
@@ -61,7 +61,7 @@ class GameBridge:
             if packet.sequence <= self.sequence:
                 raise ValueError('Out-of-order game frame')
             self.sequence, self.seen = packet.sequence, now
-            mask = sum(bit for zone, bit in [('left',1),('right',2),('rear',4),('front',8)]
+            mask = sum(bit for zone, bit in [('left',1),('right',2),('rear',4),('front',8),('person_left',16),('person_right',32),('person_rear',64),('person_front',128),('pothole',256)]
                        if zone in packet.warnings) if not packet.paused else 0
             command = (f'game {int(not packet.paused)} {round(packet.speed_mps*2.23694)} '
                        f'{packet.gear} {round(packet.rpm)} '

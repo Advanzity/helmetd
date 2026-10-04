@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .game import GameBridge, GamePacket
+from .game_reports import GameReports, GameRoadReport
 from .agent import configure_agent
 from .copilot import Copilot, HudClient
 from .navigation import NODES, PLACES, ROADS, Navigation
@@ -55,7 +56,7 @@ class Action(BaseModel):
 
 
 class HudAction(BaseModel):
-    action: Literal["status", "signal", "camera", "mode", "preview"]
+    action: Literal["status", "signal", "camera", "mode", "preview", "notification"]
     value: str = Field(default="", max_length=16)
 
 
@@ -258,6 +259,16 @@ def create_web_app(
     def hud_map_page():
         return (WEB / "hud-map.html").read_text().replace("__HELMETD_TOKEN__", guard)
 
+    game_reports = GameReports(hud.path.parent / 'game-road-reports.sqlite3')
+
+    @app.get("/api/game/reports")
+    def game_report_list():
+        return {'reports': game_reports.list()}
+
+    @app.post("/api/game/reports", dependencies=[Depends(authorize)])
+    def game_report_add(body: GameRoadReport):
+        return {'status':'ok', 'id':game_reports.add(body)}
+
     @app.get("/api/game/session")
     def game_session():
         return {"token": guard}
@@ -268,6 +279,26 @@ def create_web_app(
             return game.publish(packet)
         except ValueError as error:
             raise HTTPException(409, str(error)) from None
+
+    @app.post("/api/game/camera/{view}", dependencies=[Depends(authorize)])
+    async def game_camera(view: Literal['front', 'left', 'right', 'rear'], request: Request):
+        if request.headers.get('x-game-session') != game.session or not game.owns_navigation():
+            raise HTTPException(409, "Inactive game session")
+        payload = bytearray()
+        async for chunk in request.stream():
+            payload.extend(chunk)
+            if len(payload) > 640*360*4:
+                raise HTTPException(413, "Camera frame too large")
+        if len(payload) != 640*360*4:
+            raise HTTPException(400, "Expected a 640x360 BGRA frame")
+        if request.headers.get('x-game-session') != game.session or not game.owns_navigation():
+            raise HTTPException(409, "Inactive game session")
+        target = hud.path.parent / f"game-camera-{view}.bgra"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix('.tmp')
+        temporary.write_bytes(payload)
+        temporary.replace(target)
+        return {'status': 'ok'}
 
     @app.post("/api/start", dependencies=[Depends(authorize)])
     def start():
@@ -382,13 +413,17 @@ def create_web_app(
     def control_hud(body: HudAction):
         allowed = {
             "status": ("",),
-            "preview": ("left", "right", "rear", "person", "turn", "message", "off"),
+            "notification": ("messages", "whatsapp", "phone", "music"),
+            "preview": ("left", "right", "rear", "person", "turn", "message", "pothole", "debris", "roadworks", "slippery", "off"),
             "mode": ("full", "quiet"),
             "signal": ("left", "right", "off"),
             "camera": ("front", "left", "right", "rear", "auto"),
         }
         if body.value not in allowed[body.action]:
             raise HTTPException(400, "Unsupported HUD control")
+        if body.action == 'notification':
+            presets={'messages':'Messages Alex','whatsapp':'WhatsApp Jordan','phone':'Phone Sam','music':'Music Now_playing'}
+            return hud.request('notification '+presets[body.value])
         return hud.request(f"{body.action} {body.value}".strip())
 
     @app.post("/api/ready", dependencies=[Depends(authorize)])

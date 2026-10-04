@@ -14,8 +14,10 @@ int main() {
     require(state.game_fresh(now) && state.game.crashed && state.game.warnings == 5);
     require(state.active_signal(now) == "off");
     require(!state.game_fresh(now + 1501ms));
-    require(handle_control("g game 1 45 3 4500 left 0 99", state, now, options).find("error") != std::string::npos);
+    require(handle_control("g game 1 45 3 4500 left 0 512", state, now, options).find("error") != std::string::npos);
     require(state.game.crashed);
+    require(handle_control("g game 1 45 3 4500 off 0 240", state, now, options).find("error") == std::string::npos);
+    require(state.game.warnings == 240);
     require(handle_control("g game 1 2 -1 1300 off 0 0", state, now, options).find("error") == std::string::npos);
     require(state.game.gear == -1);
     require(handle_control("g game_nav navigating left 100 500 60 526f6164", state, now, options).find("error") == std::string::npos);
