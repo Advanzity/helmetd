@@ -36,6 +36,15 @@ struct HudState {
   std::optional<Time> alert_preview_at;
   std::string confirmation;
   std::optional<Time> confirmation_at;
+  struct Game {
+    bool active = false, crashed = false;
+    int speed_mph = 0, gear = 0, rpm = 0, warnings = 0;
+    std::string signal = "off";
+    std::optional<Time> received_at;
+  } game;
+  bool game_fresh(Time now) const {
+    return game.active && fresh(game.received_at, now, std::chrono::milliseconds(1500));
+  }
   std::string signal = "off";
   std::optional<Time> signal_until;
   std::string camera_view = "auto";
@@ -46,6 +55,7 @@ struct HudState {
     if (value != "off") panels |= 1;
   }
   std::string active_signal(Time now) const {
+    if (game_fresh(now)) return game.crashed ? "off" : game.signal;
     return signal_until && now < *signal_until ? signal : "off";
   }
   bool extra_camera_fresh(std::size_t index, Time now) const {

@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .game import GameBridge, GamePacket
 from .agent import configure_agent
 from .copilot import Copilot, HudClient
 from .navigation import NODES, PLACES, ROADS, Navigation
@@ -73,6 +74,7 @@ def create_web_app(
         RoadHazards(navigation) if isinstance(navigation, NearbyNavigation) else None
     )
     hud = hud or HudClient()
+    game = GameBridge(hud)
     checkpoint = RideRestore(hud.path.parent / 'ride-checkpoint.json') if isinstance(navigation, NearbyNavigation) else None
     if checkpoint and restore_navigation:
         checkpoint.restore(navigation)
@@ -114,6 +116,9 @@ def create_web_app(
         async def announce_detections():
             speech = None
             speaking_cue = None
+            game_spoken = None
+            game_speech = None
+            game_spoken_at = 0
             try:
                 while True:
                     try:
@@ -123,6 +128,32 @@ def create_web_app(
                             speech = None
                         status = await asyncio.to_thread(hud.request, 'status')
                         cue = detection_alerts.update(status, time.monotonic())
+                        game_cue = None
+                        if status.get('game_fresh'):
+                            mask = status.get('game_warning_mask', 0)
+                            game_cue = ('Crash detected. Reset the ride when ready.' if status.get('game_crashed') else
+                                        'Vehicle ahead.' if mask & 8 else
+                                        'Vehicle on your left.' if mask & 1 else
+                                        'Vehicle on your right.' if mask & 2 else
+                                        'Vehicle behind.' if mask & 4 else None)
+                        if game_speech and game_speech.done():
+                            try:
+                                if not game_speech.result(): game_spoken = None
+                            except Exception:
+                                game_spoken = None
+                            game_speech = None
+                        if not game_cue:
+                            game_spoken = None
+                            if game_speech:
+                                speaker.cancel()
+                                game_speech.cancel()
+                                game_speech = None
+                        if game_cue and game_cue != game_spoken and not speech and not game_speech and speaker.target() and time.monotonic()-game_spoken_at > 4:
+                            volume = current.audio.volume if current else .65
+                            if volume > 0:
+                                game_speech = asyncio.create_task(asyncio.to_thread(speaker.speak, game_cue, volume, 3))
+                                game_spoken, game_spoken_at = game_cue, time.monotonic()
+
                         if speech and speaking_cue:
                             source_live = status.get('status') == 'ok' and any(
                                 c.get('label', '').lower() == speaking_cue[0] and c.get('fresh') is True
@@ -132,7 +163,7 @@ def create_web_app(
                                 speaker.cancel()
                                 speech.cancel()
                                 speech = None
-                        if cue and not speech and speaker.target():
+                        if cue and not speech and not game_speech and speaker.target():
                             volume = current.audio.volume if current else .65
                             if volume > 0:
                                 speaking_cue = cue
@@ -145,6 +176,8 @@ def create_web_app(
                 speaker.cancel()
                 if speech:
                     speech.cancel()
+                if game_speech:
+                    game_speech.cancel()
 
         announcer = asyncio.create_task(announce_detections())
         watcher = asyncio.create_task(expire())
@@ -221,6 +254,17 @@ def create_web_app(
     @app.get("/hud-map", response_class=HTMLResponse)
     def hud_map_page():
         return (WEB / "hud-map.html").read_text().replace("__HELMETD_TOKEN__", guard)
+
+    @app.get("/api/game/session")
+    def game_session():
+        return {"token": guard}
+
+    @app.post("/api/game/telemetry", dependencies=[Depends(authorize)])
+    def game_telemetry(packet: GamePacket):
+        try:
+            return game.publish(packet)
+        except ValueError as error:
+            raise HTTPException(409, str(error)) from None
 
     @app.post("/api/start", dependencies=[Depends(authorize)])
     def start():

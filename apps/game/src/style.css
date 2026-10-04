@@ -13,3 +13,5 @@
 @media(max-width:760px){.camera-rack{right:22px;width:300px}}
 @media(max-width:600px),(max-height:480px){.camera-rack{top:142px;right:22px;width:calc(100% - 44px);max-width:620px;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.camera-feed figcaption{padding:0 5px;font-size:7px;letter-spacing:1px}}
 @media(max-height:480px){.camera-rack{top:95px}}
+
+#helmetStatus{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:30;color:#eef2ef;background:#10171dcc;border:1px solid #ffffff26;border-radius:20px;padding:8px 15px;font:11px system-ui;letter-spacing:.08em;pointer-events:none;backdrop-filter:blur(8px)}

@@ -10,6 +10,14 @@ int main() {
     HudOptions options;
     const auto now = Clock::now();
     auto require = [](bool ok) { if (!ok) throw std::runtime_error("Control assertion failed"); };
+    require(handle_control("g game 1 45 3 4500 left 1 5", state, now, options).find("error") == std::string::npos);
+    require(state.game_fresh(now) && state.game.crashed && state.game.warnings == 5);
+    require(state.active_signal(now) == "off");
+    require(!state.game_fresh(now + 1501ms));
+    require(handle_control("g game 1 45 3 4500 left 0 99", state, now, options).find("error") != std::string::npos);
+    require(state.game.crashed);
+    handle_control("g game 0 0 0 0 off 0 0", state, now, options);
+    require(!state.game_fresh(now));
     require(handle_control("map nav_map active 100 200 3 0 0 500 500 1000 1000", state, now, options).find("error") == std::string::npos);
     require(state.route_map.points.size() == 3 && state.route_map.x == 100);
     for (const auto& invalid : {"map nav_map active 0 0 33", "map nav_map active -1 0 2 0 0 1 1",

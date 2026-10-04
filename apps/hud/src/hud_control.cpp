@@ -23,7 +23,21 @@ std::string handle_control(const std::string& request, HudState& state, Time now
       [](unsigned char c) { return std::isalnum(c); })) return "";
   auto error = [&] { return "{\"request_id\":\"" + id +
       "\",\"status\":\"error\",\"reason\":\"Unsupported HUD command\"}"; };
-  if (command == "nav_map") {
+  if (command == "game") {
+    HudState::Game game;
+    int active, crashed;
+    if (!(input >> active >> game.speed_mph >> game.gear >> game.rpm >> game.signal
+                >> crashed >> game.warnings) || (input >> extra) ||
+        active < 0 || active > 1 || crashed < 0 || crashed > 1 ||
+        game.speed_mph < 0 || game.speed_mph > 336 || game.gear < 0 || game.gear > 6 ||
+        game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 15 ||
+        (game.signal != "off" && game.signal != "left" && game.signal != "right")) return error();
+    game.active = active;
+    game.crashed = active && crashed;
+    if (!active) { game.signal = "off"; game.warnings = 0; }
+    game.received_at = now;
+    state.game = game;
+  } else if (command == "nav_map") {
     HudState::RouteMap map;
     int count;
     if (!(input >> map.mode >> map.x >> map.y >> count) || count < 0 || count > 32 ||
@@ -152,7 +166,11 @@ std::string handle_control(const std::string& request, HudState& state, Time now
   if (state.camera_at) out << std::max<long long>(0,
       std::chrono::duration_cast<std::chrono::milliseconds>(now - *state.camera_at).count());
   else out << "null";
-  out << ",\"telemetry_simulated\":" << state.demo << ",\"navigation_simulated\":" << state.navigation.simulated << ','
+  out << ",\"game_fresh\":" << state.game_fresh(now)
+      << ",\"game_crashed\":" << (state.game_fresh(now) && state.game.crashed)
+      << ",\"game_warning_mask\":" << (state.game_fresh(now) ? state.game.warnings : 0)
+      << ",\"telemetry_source\":\"" << (state.game_fresh(now) ? "game" : state.demo ? "preview" : "unavailable") << "\"";
+  out << ",\"telemetry_simulated\":" << (state.demo || state.game_fresh(now)) << ",\"navigation_simulated\":" << state.navigation.simulated << ','
       << "\"navigation_state\":\"" << (state.navigation_fresh(now) ? state.navigation.state : "unavailable")
       << "\",\"navigation_fresh\":" << state.navigation_fresh(now) << ",\"detections\":[";
   bool first = true;

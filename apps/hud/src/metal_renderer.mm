@@ -491,12 +491,14 @@ struct MetalRenderer::Impl {
       composition_opacity = prior_opacity;
     }
     if (state.quiet) return;
-    const bool telemetry_fresh = state.demo && state.telemetry_fresh(now);
-    const std::string speed = telemetry_fresh ? std::to_string(state.speed_mph) : "--";
+    const bool game_live = state.game_fresh(now);
+    const bool telemetry_fresh = game_live || (state.demo && state.telemetry_fresh(now));
+    const std::string speed = telemetry_fresh ? std::to_string(game_live ? state.game.speed_mph : state.speed_mph) : "--";
     text(speed, 530, 606, 54, telemetry_fresh ? white : muted);
     text("mph", 610, 642, 16, muted);
     quad(658, 613, 1, 42, muted);
-    text(telemetry_fresh ? (state.gear == 0 ? "N" : std::to_string(state.gear)) : "-",
+    const int gear = game_live ? state.game.gear : state.gear;
+    text(telemetry_fresh ? (gear == 0 ? "N" : std::to_string(gear)) : "-",
         688, 606, 54, telemetry_fresh ? white : muted);
     text("GEAR", 744, 642, 14, muted);
     if (state.demo) text("PREVIEW DATA", 566, 679, 11, muted);
@@ -535,6 +537,20 @@ struct MetalRenderer::Impl {
   // Camera-relative cues, deliberately not world-position or collision estimates.
   bool directional_cues(const HudState& state, Time now) {
     bool alert = false;
+    if (state.game_fresh(now)) {
+      const auto& game = state.game;
+      if (game.crashed) {
+        symbol(3, 610, 292, 52, 54);
+        text("CRASH DETECTED", 528, 362, 24, amber);
+        text("RESET RIDE TO CONTINUE", 532, 399, 14, white);
+        return true;
+      }
+      if (game.warnings & 1) { symbol(0,22,316,28,42); text("VEHICLE",54,331,13,amber); }
+      if (game.warnings & 2) { symbol(1,1234,316,28,42); text("VEHICLE",1152,331,13,amber); }
+      if (game.warnings & 4) { symbol(2,600,548,46,42); text("VEHICLE BEHIND",540,593,14,amber); }
+      if (game.warnings & 8) { symbol(3,613,526,34,36); text("VEHICLE AHEAD",550,568,14,amber); }
+      alert = game.warnings != 0;
+    }
     for (std::size_t i = 0; i < state.extra_cameras.size(); ++i) {
       const auto cue = state.side_display_advisory(i, now);
       if (cue == Advisory::none) continue;

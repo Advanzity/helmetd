@@ -87,3 +87,34 @@ npm --prefix apps/game run build
 The game keeps its own lockfile. CMake and uv continue to manage the native and
 Python components. Asset authoring is documented in the
 [pipeline notes](../apps/game/pipeline/README.md).
+
+## Implemented local bridge (2026-10-04)
+
+Run the helmet console on port 8016 (`sh tools/helmet.sh --pi <Pi IP>`), then
+`npm --prefix apps/game run dev` and open `http://127.0.0.1:5173`.
+Vite proxies only `/api/game` to the local console; the browser obtains an
+origin-guarded action token and sends at most ten snapshots per second, with one
+request in flight. The game footer reports HUD acknowledgement, not merely HTTP
+connectivity. This bridge is configured for the Vite development server; a
+separately hosted production build needs equivalent same-origin proxy routing.
+
+- Z: toggle left signal; V: toggle right signal; X: cancel.
+- Speed and gear use motorcycle physics. RPM is carried in the native state.
+- Nearby game cars produce left/right, rear, and forward proximity warnings.
+  The adapter uses heading-relative positions, ignores other road elevations,
+  and holds a warning for one second to avoid boundary flicker. These are
+  proximity cues, not estimates of collision probability.
+- Collisions use the physics crash flag. The HUD retains a crash message until
+  reset with R; it does not contact emergency services.
+- Pause/settings/map clear active game cues. Browser disconnection expires
+  native game state after 1.5 seconds. Reset changes the session identifier;
+  reordered packets and retired sessions are rejected.
+- Game cues can speak through the existing Pi audio output. Camera detections
+  remain separate; game vehicle positions are never drawn on real camera video.
+- Native status exposes `telemetry_source`, `game_fresh`, `game_crashed`, and
+  `game_warning_mask` for operator verification. No game input is represented
+  as physical motorcycle telemetry.
+
+To check: ride and compare speed/gear, press Z then V then X, approach traffic,
+collide and reset with R, pause with P, then close the game tab and confirm the
+HUD removes game telemetry/cues. Audio requires the existing Pi audio service.

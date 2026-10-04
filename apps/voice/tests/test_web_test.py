@@ -226,3 +226,13 @@ def test_map_frame_requires_authorization_and_exact_dimensions(web):
     assert web.map_path.read_bytes() == frame
     assert web.client.post("/api/hud/map-frame", headers=web.headers, content=frame+b"x").status_code == 413
     assert web.map_path.read_bytes() == frame
+
+
+def test_game_telemetry_requires_guard_and_rejects_reordered_packets(web):
+    packet = dict(session='ride', sequence=1, paused=False, speed_mps=10,
+                  gear=2, rpm=4000, signal='left', crashed=False, warnings=['left'])
+    assert web.client.post('/api/game/telemetry', json=packet).status_code == 403
+    response = web.client.post('/api/game/telemetry', json=packet, headers=web.headers)
+    assert response.status_code == 200
+    assert response.json()['source'] == 'game'
+    assert web.client.post('/api/game/telemetry', json=packet, headers=web.headers).status_code == 409
