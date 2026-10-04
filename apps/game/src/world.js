@@ -1,3 +1,5 @@
+import {addBuildings} from './buildings.js';
+import {clipGroundAtRoads} from './ground-geometry.js';
 import {laneCenter} from './road-layout.js';
 import * as T from 'three';import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 export class World{
@@ -10,22 +12,24 @@ export class World{
  collision(x,z){const y=-z;for(const b of this.buildingGrid.get(Math.floor(x/50)+','+Math.floor(y/50))||[]){if(x<b.bounds[0]-.35||x>b.bounds[2]+.35||y<b.bounds[1]-.35||y>b.bounds[3]+.35)continue;let inside=false;const p=b.points;for(let i=0,j=p.length-1;i<p.length;j=i++){if(((p[i][1]>y)!=(p[j][1]>y))&&(x<(p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0]))inside=!inside}if(inside)return true}return false}
  async build(scene,loader){
  const texture=async(n,srgb=true)=>{const t=await new T.TextureLoader().loadAsync('/assets/'+n);t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;if(srgb)t.colorSpace=T.SRGBColorSpace;return t};
- const [albedo,normal,rough]=await Promise.all([texture('asphalt-color.jpg'),texture('asphalt-normal.jpg',false),texture('asphalt-roughness.jpg',false)]);
- const asphalt=new T.MeshStandardMaterial({map:albedo,normalMap:normal,normalScale:new T.Vector2(.3,.3),roughnessMap:rough,roughness:.95,color:0xa2a4a3});const [cm,cn,cr]=await Promise.all([texture('concrete-color.jpg'),texture('concrete-normal.jpg',false),texture('concrete-roughness.jpg',false)]);const concrete=new T.MeshStandardMaterial({map:cm,normalMap:cn,roughnessMap:cr,normalScale:new T.Vector2(.07,.07),color:0xc1beb2,roughness:1});for(const t of [cm,cn,cr])t.repeat.set(3,3);const shoulder=asphalt.clone();shoulder.color.set(0x6a6459);
+ const asphalt=new T.MeshStandardMaterial({color:0x646866,roughness:1});const concrete=new T.MeshStandardMaterial({color:0x7a7b78,roughness:1});const shoulder=asphalt.clone();shoulder.color.set(0x6a6459);
  const n=this.data.resolution,d=this.data,verts=[],uv=[],indices=[],colors=[];
  for(let j=0;j<n;j++)for(let i=0;i<n;i++){const x=(i/(n-1)-.5)*d.size,z=-(j/(n-1)-.5)*d.size;let h=d.heights[j*n+i];const road=this.roadAt(x,z);if(road&&!road.road.bridge){const a=T.MathUtils.clamp((road.distance-road.road.width/2)/5,0,1);h=h*a+(road.height-.09)*(1-a)}verts.push(x,h,z);uv.push(i/(n-1),j/(n-1));const c=new T.Color().setHSL(.19+Math.sin(x*.03)*.008,.19,.24+Math.sin(x*.013+z*.027)*.025);colors.push(c.r,c.g,c.b);if(i<n-1&&j<n-1){const a=j*n+i;indices.push(a,a+1,a+n,a+1,a+n+1,a+n)}}
  let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(verts,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();
- const aerial=await texture('aerial.jpg');aerial.wrapS=aerial.wrapT=T.ClampToEdgeWrapping;const terrain=new T.Mesh(g,new T.MeshStandardMaterial({map:aerial,roughness:1,color:0x92998b,side:T.DoubleSide}));terrain.receiveShadow=true;scene.add(terrain);
- const bounds=this.data.bounds;if(bounds){const v=[],ix=[],uv=[];const nx=Math.ceil((bounds[2]-bounds[0])/18),ny=Math.ceil((bounds[3]-bounds[1])/18);for(let j=0;j<=ny;j++)for(let i=0;i<=nx;i++){const x=bounds[0]+(bounds[2]-bounds[0])*i/nx,y=bounds[1]+(bounds[3]-bounds[1])*j/ny;let height=this.elevation(x,-y)-.18;const road=this.roadAt(x,-y);if(road&&!road.road.bridge){const blend=T.MathUtils.clamp((road.distance-road.road.width/2-12)/18,0,1);height=height*blend+(road.height-.24)*(1-blend)}v.push(x,height,-y);uv.push(x/8,y/8);if(i<nx&&j<ny){const k=j*(nx+1)+i;ix.push(k,k+1,k+nx+1,k+1,k+nx+2,k+nx+1)}}const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(ix);geo.computeVertexNormals();const grass=await texture('grass-color.jpg');addTerrainTiles(scene,geo,new T.MeshStandardMaterial({map:grass,color:0x9a9d76,roughness:1}));}
+ g=carveGroundGeometry(this,g);let terrainMaterial;if(this.data.aerialTexture===false)terrainMaterial=new T.MeshStandardMaterial({color:0x7b806f,roughness:1,side:T.DoubleSide});else{const aerial=await texture('aerial.jpg');aerial.wrapS=aerial.wrapT=T.ClampToEdgeWrapping;terrainMaterial=new T.MeshStandardMaterial({map:aerial,roughness:1,color:0x92998b,side:T.DoubleSide})}const terrain=new T.Mesh(g,terrainMaterial);terrain.receiveShadow=true;scene.add(terrain);
+ if(this.data.simpleBuildings&&this.data.buildings.length)this.updateSimpleBuildings=await addBuildings(scene,this);
+ const bounds=this.data.bounds;if(bounds&&this.data.outerTerrain){const geo=outerTerrainGeometry(this);const grass=await texture('grass-color.jpg');addTerrainTiles(scene,geo,new T.MeshStandardMaterial({map:grass,color:0x9a9d76,roughness:1}));}
+
  const groups=[[],[],[],[]];const stripe=[[],[]];const curbs=[],walks=[];
  const quad=roadStrip;for(const road of this.data.roads){groups[2].push(roadRibbon(road.points,road.width+1.2,road.pavementOffset||0,-.045));groups[road.surface==='concrete'?1:0].push(roadRibbon(road.points,road.width,road.pavementOffset||0));}
  for(const s of this.segments){const {a,b,len,road}=s;
+ const markStart=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,markEnd=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,markA=a.map((v,k)=>v+(b[k]-v)*markStart/len),markB=b.map((v,k)=>v-(b[k]-a[k])*markEnd/len);
  if(road.curb&&road.class!=='service'){const start=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,end=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,pa=a.map((v,k)=>v+(b[k]-v)*start/len),pb=b.map((v,k)=>v-(b[k]-a[k])*end/len);for(const side of [-1,1]){curbs.push(curbRibbon([pa,pb],side*(road.width/2-.10)));if(['residential','tertiary','unclassified'].includes(road.class))walks.push(roadRibbon([pa,pb],1.52,side*(road.width/2+2.25),.12))}}
  if(['service','residential','living_street'].includes(road.class))continue;
  const laneWidth=road.laneWidth||3.35,usable=road.lanes*laneWidth;
- for(const edge of [-1,1]){const q=quad(a,b,.12,edge*usable/2,.018);if(q)stripe[road.oneway&&edge<0?1:0].push(q)}
- if(!road.oneway){for(const offset of road.lanes%2?[-laneWidth/2,laneWidth/2]:[-.10,.10]){const q=quad(a,b,.10,offset,.021);if(q)stripe[1].push(q)}}
- for(let lane=1;lane<road.lanes;lane++){const offset=-usable/2+lane*laneWidth;if(!road.oneway&&(Math.abs(offset)<.3||road.lanes%2&&Math.abs(Math.abs(offset)-laneWidth/2)<.1))continue;for(let at=0;at<len;at+=12){const end=Math.min(at+3,len),pa=a.map((v,k)=>v+(b[k]-v)*at/len),pb=a.map((v,k)=>v+(b[k]-v)*end/len);const q=quad(pa,pb,.12,offset,.02);if(q)stripe[0].push(q)}}
+ for(const edge of [-1,1]){const q=quad(markA,markB,.12,edge*usable/2,.018);if(q)stripe[road.oneway&&edge<0?1:0].push(q)}
+ if(!road.oneway){for(const offset of road.lanes%2?[-laneWidth/2,laneWidth/2]:[-.10,.10]){const q=quad(markA,markB,.10,offset,.021);if(q)stripe[1].push(q)}}
+ for(let lane=1;lane<road.lanes;lane++){const offset=-usable/2+lane*laneWidth;if(!road.oneway&&(Math.abs(offset)<.3||road.lanes%2&&Math.abs(Math.abs(offset)-laneWidth/2)<.1))continue;for(let at=markStart;at<len-markEnd;at+=12){const end=Math.min(at+3,len-markEnd),pa=a.map((v,k)=>v+(b[k]-v)*at/len),pb=a.map((v,k)=>v+(b[k]-v)*end/len);const q=quad(pa,pb,.12,offset,.02);if(q)stripe[0].push(q)}}
 
  }
  addTiles(scene,curbs,concrete);addTiles(scene,walks,concrete);
@@ -33,12 +37,23 @@ export class World{
  const mats=[asphalt,concrete,shoulder];groups.forEach((list,i)=>{if(!list.length)return;addTiles(scene,list,mats[i])});stripe.forEach((list,i)=>{if(!list.length)return;addTiles(scene,list,new T.MeshStandardMaterial({color:i?0xcbb361:0xdcdad0,roughness:.88,side:T.DoubleSide}))});
  const [brickMap,brickNormal,brickRough]=await Promise.all([texture('masonry-color.jpg'),texture('masonry-normal.jpg',false),texture('masonry-roughness.jpg',false)]);
  for(const t of [brickMap,brickNormal,brickRough])t.repeat.set(1.6,1.6);
- this.buildingManifest=await (await fetch('/assets/building-tiles.json')).json();this.loadedBuildingTiles=new Map();let loading=false,lastCheck=0;
- this.updateBuildings=async(p,force=false)=>{if(loading||!force&&performance.now()-lastCheck<1000)return;lastCheck=performance.now();loading=true;try{const wanted=this.buildingManifest.filter(t=>Math.hypot(t.x-p.x,-t.y-p.z)<2100).sort((a,b)=>Math.hypot(a.x-p.x,-a.y-p.z)-Math.hypot(b.x-p.x,-b.y-p.z));for(const tile of wanted){if(this.loadedBuildingTiles.has(tile.file))continue;const buildings=(await loader.loadAsync('/assets/building-tiles/'+tile.file)).scene;
-buildings.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(m.name==='Masonry brick'){m.map=brickMap;m.normalMap=brickNormal;m.roughnessMap=brickRough;m.normalScale=new T.Vector2(.65,.65);m.color.set(0xb5a99a);m.roughness=1;m.needsUpdate=true}if(m.map)m.map.anisotropy=8}}});scene.add(buildings);this.loadedBuildingTiles.set(tile.file,buildings)}for(const tile of this.buildingManifest){const object=this.loadedBuildingTiles.get(tile.file);if(object){const distance=Math.hypot(tile.x-p.x,-tile.y-p.z);object.visible=distance<2600;if(distance>4000){scene.remove(object);object.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material]))m.dispose()}});this.loadedBuildingTiles.delete(tile.file)}}}}catch(error){console.warn('Building tile load failed; retrying',error)}finally{loading=false}};
+ this.buildingManifest=this.data.buildingTiles??await (await fetch('/assets/building-tiles.json')).json();this.loadedBuildingTiles=new Map();let loading=false,lastCheck=0;
+ this.updateBuildings=async(p,force=false)=>{this.updateSimpleBuildings?.(p);if(loading||!force&&performance.now()-lastCheck<1000)return;lastCheck=performance.now();loading=true;try{const wanted=this.buildingManifest.filter(t=>Math.hypot(t.x-p.x,-t.y-p.z)<1000).sort((a,b)=>Math.hypot(a.x-p.x,-a.y-p.z)-Math.hypot(b.x-p.x,-b.y-p.z));for(const tile of wanted){if(this.loadedBuildingTiles.has(tile.file))continue;const buildings=(await loader.loadAsync('/assets/building-tiles/'+tile.file)).scene;
+buildings.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;for(const m of (Array.isArray(o.material)?o.material:[o.material])){if(m.name==='Masonry brick'){m.map=brickMap;m.normalMap=brickNormal;m.roughnessMap=brickRough;m.normalScale=new T.Vector2(.65,.65);m.color.set(0xb5a99a);m.roughness=1;m.needsUpdate=true}if(m.map)m.map.anisotropy=8}}});scene.add(buildings);this.loadedBuildingTiles.set(tile.file,buildings)}for(const tile of this.buildingManifest){const object=this.loadedBuildingTiles.get(tile.file);if(object){const distance=Math.hypot(tile.x-p.x,-tile.y-p.z);object.visible=distance<1100;if(distance>1600){scene.remove(object);object.traverse(o=>{if(o.isMesh){o.geometry.dispose();for(const m of (Array.isArray(o.material)?o.material:[o.material]))m.dispose()}});this.loadedBuildingTiles.delete(tile.file)}}}}catch(error){console.warn('Building tile load failed; retrying',error)}finally{loading=false}};
  await this.updateBuildings(this.spawn(),true);
  }
- spawn(kind=0){if(kind===8||kind===9){
+ spawn(kind=0){
+ const business=this.data.businesses?.[kind-10];
+ if(business){
+  let best=null;
+  for(const {a,b,len,road} of this.segments){
+   if(road.name!==business.street)continue;
+   const dx=b[0]-a[0],dy=b[1]-a[1],t=T.MathUtils.clamp(((business.point[0]-a[0])*dx+(business.point[1]-a[1])*dy)/(len*len),0,1),x=a[0]+dx*t,y=a[1]+dy*t,distance=Math.hypot(x-business.point[0],y-business.point[1]);
+   if(!best||distance<best.distance){const heading=Math.atan2(dx,dy),offset=laneCenter(road);best={distance,x:x+Math.cos(heading)*offset,z:-y+Math.sin(heading)*offset,y:a[2]+(b[2]-a[2])*t,heading}}
+  }
+  if(best)return best;
+ }
+ if(kind===8||kind===9){
   const name=kind===8?'Van Dyke Avenue':'25 Mile Road',target=kind===8?[-652.58,7647.45]:[-687.58,7682.45];
   let best=null;
   for(const segment of this.segments){if(segment.road.name!==name)continue;let {a,b,len,road}=segment;
@@ -48,6 +63,7 @@ buildings.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;for(c
   }
   if(best)return best;
  }
+ const routeName=kind===0?this.data.primaryRoadName:kind===1?this.data.freewayName:null;if(routeName){let closest=null;for(const segment of this.segments){if(segment.road.name!==routeName)continue;const {a,b,len,road}=segment,dx=b[0]-a[0],dy=b[1]-a[1],t=T.MathUtils.clamp(-(a[0]*dx+a[1]*dy)/(len*len),0,1),x=a[0]+dx*t,y=a[1]+dy*t,distance=Math.hypot(x,y);if(!closest||distance<closest.distance)closest={a,b,road,t,x,y,distance}}if(closest){const {a,b,road,t,x,y}=closest,heading=Math.atan2(b[0]-a[0],b[1]-a[1]),offset=laneCenter(road);return {x:x+Math.sin(heading)*12+Math.cos(heading)*offset,z:-y-Math.cos(heading)*12+Math.sin(heading)*offset,y:a[2]+(b[2]-a[2])*t,heading}}}
  const roads=this.data.roads.filter(r=>kind===4?r.name==='Althea Street':kind===5?/Dequindre/i.test(r.name):kind===6?/Hayes Road/i.test(r.name):kind===7?/Shelby Road/i.test(r.name):kind===2?/15 Mile/i.test(r.name):kind===3?/25 Mile/i.test(r.name):kind===1?r.class==='motorway'&&r.name.includes('Columbus')&&r.points.at(-1)[1]>r.points[0][1]:r.name==='Hall Road');const selected=roads.filter(r=>r.length>90).sort((a,b)=>{const c=r=>kind>=4?Math.abs(r.points[0][1]-4800):kind===1?Math.abs(r.points[0][0]-950)+Math.abs(r.points[0][1]-650):Math.abs(r.points[0][0])+Math.abs(r.points[0][1]+440);return c(a)-c(b)})[0]||roads[0];const a=selected.points[0],b=selected.points[1],heading=Math.atan2(b[0]-a[0],b[1]-a[1]);const laneOffset=laneCenter(selected);return {x:a[0]+Math.sin(heading)*12+Math.cos(heading)*laneOffset,z:-a[1]-Math.cos(heading)*12+Math.sin(heading)*laneOffset,y:a[2],heading}}
 }
 
@@ -60,3 +76,46 @@ export function curbRibbon(points,offset){const top=roadRibbon(points,.22,offset
 function addTiles(scene,list,material){const tiles=new Map();for(const g of list){g.computeBoundingBox();const c=g.boundingBox.getCenter(new T.Vector3()),key=Math.floor(c.x/300)+','+Math.floor(c.z/300);if(!tiles.has(key))tiles.set(key,[]);tiles.get(key).push(g)}for(const parts of tiles.values()){const g=mergeGeometries(parts);g.computeBoundingSphere();const mesh=new T.Mesh(g,material);mesh.receiveShadow=true;scene.add(mesh);parts.forEach(p=>p.dispose())}}
 
 function addTerrainTiles(scene,source,material){const position=source.getAttribute('position'),normal=source.getAttribute('normal'),uv=source.getAttribute('uv'),index=source.index.array,tiles=new Map();for(let i=0;i<index.length;i+=3){const first=index[i],key=Math.floor(position.getX(first)/360)+','+Math.floor(position.getZ(first)/360);let tile=tiles.get(key);if(!tile){tile={lookup:new Map(),p:[],n:[],u:[],ix:[]};tiles.set(key,tile)}for(let j=0;j<3;j++){const id=index[i+j];if(!tile.lookup.has(id)){tile.lookup.set(id,tile.p.length/3);tile.p.push(position.getX(id),position.getY(id),position.getZ(id));tile.n.push(normal.getX(id),normal.getY(id),normal.getZ(id));tile.u.push(uv.getX(id),uv.getY(id))}tile.ix.push(tile.lookup.get(id))}}for(const t of tiles.values()){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(t.p,3));g.setAttribute('normal',new T.Float32BufferAttribute(t.n,3));g.setAttribute('uv',new T.Float32BufferAttribute(t.u,2));g.setIndex(t.ix);g.computeBoundingSphere();const m=new T.Mesh(g,material);m.receiveShadow=true;scene.add(m)}source.dispose()}
+
+// The aerial mesh owns the central square. Align the outer grid to its edges
+// so the two surfaces never overlap or leave partially covered cells.
+export function outerTerrainGeometry(world){
+ const bounds=world.data.bounds,half=world.data.size/2;
+ const axis=(min,max)=>{
+  const count=Math.ceil((max-min)/18),values=Array.from({length:count+1},(_,i)=>min+(max-min)*i/count);
+  for(const edge of [-half,half])if(edge>min&&edge<max)values.push(edge);
+  return [...new Set(values)].sort((a,b)=>a-b);
+ };
+ const xs=axis(bounds[0],bounds[2]),ys=axis(bounds[1],bounds[3]),v=[],uv=[],ix=[],nx=xs.length;
+ for(const y of ys)for(const x of xs){
+  let height=world.elevation(x,-y)-.18;const road=world.roadAt(x,-y);
+  if(road&&!road.road.bridge){const blend=T.MathUtils.clamp((road.distance-road.road.width/2-12)/18,0,1);height=height*blend+(road.height-.24)*(1-blend)}
+  // Match the aerial mesh's boundary heights, including its road flattening.
+  if((Math.abs(x)===half&&Math.abs(y)<=half)||(Math.abs(y)===half&&Math.abs(x)<=half)){
+   const d=world.data,n=d.resolution,u=(x/d.size+.5)*(n-1),w=(y/d.size+.5)*(n-1),i=Math.min(Math.floor(u),n-2),j=Math.min(Math.floor(w),n-2),a=u-i,b=w-j,h=d.heights;
+   height=h[j*n+i]*(1-a)*(1-b)+h[j*n+i+1]*a*(1-b)+h[(j+1)*n+i]*(1-a)*b+h[(j+1)*n+i+1]*a*b;
+   if(road&&!road.road.bridge){const blend=T.MathUtils.clamp((road.distance-road.road.width/2)/5,0,1);height=height*blend+(road.height-.09)*(1-blend)}
+  }
+  v.push(x,height,-y);uv.push(x/8,y/8);
+ }
+ for(let j=0;j<ys.length-1;j++)for(let i=0;i<nx-1;i++){
+  if(xs[i]>=-half&&xs[i+1]<=half&&ys[j]>=-half&&ys[j+1]<=half)continue;
+  const k=j*nx+i;ix.push(k,k+1,k+nx,k+1,k+nx+1,k+nx);
+ }
+ const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(ix);geo.computeVertexNormals();return geo;
+}
+
+export function carveGroundGeometry(world,source){
+ const p=source.getAttribute('position'),uv=source.getAttribute('uv'),n=source.getAttribute('normal'),ix=source.index.array,v=Array.from(p.array),u=Array.from(uv.array),normals=Array.from(n.array),indices=[];
+ for(let i=0;i<ix.length;i+=3){
+  const triangle=Array.from(ix.slice(i,i+3),k=>[p.getX(k),-p.getZ(k),p.getY(k),uv.getX(k),uv.getY(k),n.getX(k),n.getY(k),n.getZ(k)]);
+  const pieces=clipGroundAtRoads(world,triangle);
+  if(pieces.length===1&&pieces[0]===triangle){indices.push(ix[i],ix[i+1],ix[i+2]);continue}
+  for(const piece of pieces){
+   const start=v.length/3;
+   for(const q of piece){v.push(q[0],q[2],-q[1]);u.push(q[3],q[4]);normals.push(q[5],q[6],q[7])}
+   for(let j=1;j<piece.length-1;j++)indices.push(start,start+j,start+j+1);
+  }
+ }
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setAttribute('uv',new T.Float32BufferAttribute(u,2));g.setAttribute('normal',new T.Float32BufferAttribute(normals,3));g.setIndex(indices);source.dispose();return g;
+}

@@ -3,3 +3,13 @@
 #townMap{position:absolute;inset:22px;background:#182222;z-index:20;padding:26px 32px;color:#edf0e7;display:flex;flex-direction:column;border:1px solid #b8c7ba44;box-shadow:0 20px 90px #0008}#townMap.hidden{display:none}.town-map-head{display:flex;justify-content:space-between;align-items:center}.town-map-head small{font-size:10px;letter-spacing:2px;color:#e5ad70}.town-map-head h2{font-weight:400;font-size:28px;margin:8px 0}.town-map-head button{background:transparent;color:inherit;border:0;font-size:32px;cursor:pointer}#townMap p{font-size:12px;color:#b1c3b8}#townMap p span{float:right;opacity:.6}#townMap canvas{min-height:0;width:100%;flex:1;cursor:crosshair}#map{cursor:pointer}@media(max-width:700px){#townMap{inset:10px;padding:18px}#townMap p span{display:none}}
 
 #openTownMap{width:100%;background:#e5ad70;color:#17201d;border:0;padding:12px 15px;text-align:left;margin:8px 0 12px}#openTownMap span{float:right;opacity:.6}
+
+.camera-rack{position:fixed;top:145px;right:46px;width:360px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;pointer-events:none}
+.camera-feed{margin:0;min-width:0;border:1px solid #e4e8dd40;box-shadow:0 3px 12px #07101245}
+.camera-feed figcaption{height:20px;display:flex;justify-content:space-between;align-items:center;padding:0 8px;background:#142126e8;font-size:8px;letter-spacing:1.5px;color:#e4e8dc}
+.camera-feed figcaption i{width:4px;height:4px;border-radius:50%;background:#83918a}
+.camera-screen{width:100%;aspect-ratio:16/9;background:#152126}
+.camera-ready .camera-screen{background:transparent}.camera-ready figcaption i{background:#c6cfab}.camera-frozen figcaption i{background:#e9b47c}
+@media(max-width:760px){.camera-rack{right:22px;width:300px}}
+@media(max-width:600px),(max-height:480px){.camera-rack{top:142px;right:22px;width:calc(100% - 44px);max-width:620px;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.camera-feed figcaption{padding:0 5px;font-size:7px;letter-spacing:1px}}
+@media(max-height:480px){.camera-rack{top:95px}}
