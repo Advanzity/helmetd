@@ -42,6 +42,8 @@ export class HudCameras{
    return {...view,target,quad,element,screen:element.querySelector('.camera-screen'),camera:new T.PerspectiveCamera(82,16/9,.15,180)};
   });
   this.quality='balanced';this.layoutDirty=true;this.wasVisible=false;
+  this.onResize=()=>{this.layoutDirty=true};
+  window.addEventListener('resize',this.onResize);
   this.resizeObserver=new ResizeObserver(()=>{this.layoutDirty=true});this.resizeObserver.observe(this.root);
  }
 
@@ -65,9 +67,10 @@ export class HudCameras{
   this.layoutDirty=false;
  }
 
- render(now,dt,pose,{quality='balanced',visible=true,live=true}={}){
+ render(now,dt,pose,{quality='balanced',view='all',visible=true,live=true}={}){
   this.root.classList.toggle('hidden',!visible);this.root.classList.toggle('camera-frozen',!live);
   if(!visible){this.wasVisible=false;return}
+  if(this.view!==view){this.view=view;this.layoutDirty=true;this.schedule.nextTime=0;this.root.classList.toggle('single-camera',view!=='all');for(const feed of this.feeds){const selected=view==='all'||view===feed.id;feed.element.style.display=selected?'':'none';feed.quad.visible=selected&&feed.element.classList.contains('camera-ready');}}
   if(!this.wasVisible){this.layoutDirty=true;this.wasVisible=true}
   if(this.quality!==quality&&live){
    this.quality=quality;this.schedule.nextTime=0;
@@ -79,11 +82,14 @@ export class HudCameras{
   try{
    // The main view already updated world matrices and shadows this frame.
    renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=false;this.scene.matrixWorldAutoUpdate=false;
-   const index=live?this.schedule.next(now,dt,quality):null;
-   if(index!==null){
+   const scheduled=live?this.schedule.next(now,dt,quality):null;
+   const index=scheduled===null?null:view==='all'?scheduled:this.feeds.findIndex(feed=>feed.id===view);
+   if(index!==null&&index>=0){
     const feed=this.feeds[index];positionHudCamera(feed.camera,pose,feed.yaw);
     // Resize a feed only when refreshing it; the other three keep their images.
-    const width=quality==='high'?256:192;if(feed.target.width!==width)feed.target.setSize(width,width*9/16);
+    const width=quality==='high'?384:256;if(feed.target.width!==width)feed.target.setSize(width,width*9/16);
+    const samples=Math.min(quality==='high'?4:2,renderer.capabilities.maxSamples);
+    if(feed.target.samples!==samples){feed.target.dispose();feed.target.samples=samples;}
     renderer.setRenderTarget(feed.target);renderer.setScissorTest(false);renderer.autoClear=true;
     renderer.render(this.scene,feed.camera);feed.quad.visible=true;feed.element.classList.add('camera-ready');
    }
@@ -96,7 +102,7 @@ export class HudCameras{
  }
 
  dispose(){
-  this.resizeObserver.disconnect();this.root.remove();this.plane.dispose();
+  window.removeEventListener('resize',this.onResize);this.resizeObserver.disconnect();this.root.remove();this.plane.dispose();
   for(const feed of this.feeds){feed.target.dispose();feed.quad.material.dispose()}
  }
 }

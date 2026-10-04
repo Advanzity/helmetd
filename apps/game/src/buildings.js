@@ -174,6 +174,6 @@ export async function addBuildings(scene,world){
  const atlas=storefrontAtlas(plan.shops);materials.push(new T.MeshStandardMaterial({map:atlas.map,roughness:.72,vertexColors:true,side:T.DoubleSide}));
  const meshes=buildingTiles(world.data.buildings,(x,z)=>world.elevation(x,z),plan).map(geometry=>{const mesh=new T.Mesh(geometry,materials);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);return mesh});
  // Nearby tiles only. No individual building objects, transparent glazing, or lights.
- const update=p=>{for(const mesh of meshes){const sphere=mesh.geometry.boundingSphere;mesh.visible=Math.hypot(sphere.center.x-p.x,sphere.center.z-p.z)-sphere.radius<850}};
+ const update=p=>{for(const mesh of meshes){const sphere=mesh.geometry.boundingSphere;mesh.visible=Math.hypot(sphere.center.x-p.x,sphere.center.z-p.z)-sphere.radius<1000}};
  update(world.spawn());return update;
 }

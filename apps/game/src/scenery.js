@@ -48,13 +48,13 @@ export async function landscapeTrees(scene,world,loader){
  for(const b of world.data.buildings){if(!b.roofFaces||random()>.42)continue;const p=b.points,x=p.reduce((s,q)=>s+q[0],0)/p.length,y=p.reduce((s,q)=>s+q[1],0)/p.length,r=world.roadAt(x,-y);if(!r||r.distance<18||r.distance>70||r.road.class!=='residential')continue;const a=r.s.a,c=r.s.b,rx=a[0]+(c[0]-a[0])*r.t,ry=a[1]+(c[1]-a[1])*r.t;plant(rx+(x-rx)*.60+Math.cos(r.heading)*5,ry+(y-ry)*.60-Math.sin(r.heading)*5,5.5+random()*3)}
  const treeMap=await new T.TextureLoader().loadAsync('/assets/tree-impostor.png');treeMap.colorSpace=T.SRGBColorSpace;
  // Draw only a small nearby pool, rather than the entire forest or detailed tree meshes.
- const capacity=256,geo=new T.PlaneGeometry(1,1),mat=new T.MeshBasicMaterial({map:treeMap,alphaTest:.42,side:T.DoubleSide,color:0x98a282});
+ const capacity=256,geo=new T.PlaneGeometry(1,1),mat=new T.MeshBasicMaterial({map:treeMap,alphaTest:.42,alphaToCoverage:true,side:T.DoubleSide,color:0x98a282});
  const billboards=new T.InstancedMesh(geo,mat,capacity);billboards.count=0;billboards.frustumCulled=false;scene.add(billboards);
- const dummy=new T.Object3D(),color=new T.Color();let lastX=Infinity,lastZ=Infinity,lastAngle=Infinity;
- return camera=>{const x=camera.position.x,z=camera.position.z,angle=camera.rotation.y;
-  if(Math.hypot(x-lastX,z-lastZ)<8&&Math.abs(angle-lastAngle)<.15)return;
-  lastX=x;lastZ=z;lastAngle=angle;
-  const nearby=locations.map(p=>({p,d:Math.hypot(p.x-x,p.z-z)})).filter(o=>o.d<450).sort((a,b)=>a.d-b.d).slice(0,capacity);
+ const dummy=new T.Object3D(),color=new T.Color();let lastX=Infinity,lastZ=Infinity;let nearby=[];
+ return camera=>{const x=camera.position.x,z=camera.position.z;
+  if(Math.hypot(x-lastX,z-lastZ)>=8){lastX=x;lastZ=z;
+  nearby=locations.map(p=>({p,d:Math.hypot(p.x-x,p.z-z)})).filter(o=>o.d<450).sort((a,b)=>a.d-b.d).slice(0,capacity);
+  }
   billboards.count=nearby.length;
   nearby.forEach(({p},i)=>{dummy.position.set(p.x,p.y+p.height*.48,p.z);dummy.rotation.set(0,Math.atan2(x-p.x,z-p.z),0);dummy.scale.set(p.height*.85,p.height,1);dummy.updateMatrix();billboards.setMatrixAt(i,dummy.matrix);billboards.setColorAt(i,color.setHSL(.21+p.tint*.025,.12,.70+p.tint*.17))});
   billboards.instanceMatrix.needsUpdate=true;if(billboards.instanceColor)billboards.instanceColor.needsUpdate=true;
