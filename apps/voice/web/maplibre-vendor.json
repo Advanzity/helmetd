@@ -1,0 +1,9 @@
+{
+  "version": "6.12.0",
+  "sha256": {
+    "maplibre-gl.css": "8456072adc2cbf04f7b845bc83b90cec571b293bd37816970e6566f34946ab8b",
+    "maplibre-gl-shared.mjs": "df3d0b4ba965ebafd2deae3c568500308be2982d87dadd771ba82dc5a49a4631",
+    "maplibre-gl-worker.mjs": "1ecca7178f0a496b7980dc7a3c6a8c3575eda673cf3e9fa3324dcce7ef3890c2",
+    "maplibre-gl.mjs": "8e0545d1042293cb8c1e09949f36ba83237f69b4fbc080958cf38829615bcf69"
+  }
+}

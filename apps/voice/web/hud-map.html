@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="helmetd-token" content="">
+<title>Helmetd map renderer</title><link rel="stylesheet" href="/assets/maplibre-gl.css">
+<style>html,body,#map{margin:0;width:100%;height:100%;background:#000;overflow:hidden}.maplibregl-control-container{display:none}</style></head>
+<body><script>
+// The native renderer owns its frame clock even when no browser window is visible.
+window.requestAnimationFrame=callback=>setTimeout(()=>callback(performance.now()),100);
+window.cancelAnimationFrame=handle=>clearTimeout(handle);
+</script><span id="map-camera" hidden></span><span id="map-elevation" hidden></span><div id="map"></div><script type="module">
+import {EarthMap} from '/assets/earth-map.js';
+import {localFetch} from '/assets/local-api.js';
+window.helmetMapReady=true;
+window.onerror=message=>{window.helmetMapError=String(message);};
+const map=new EarthMap({container:document.getElementById('map'),basemap:'holo',relief:1,publishHud:true,
+ onReady:()=>{},onStatus:message=>{window.helmetMapError=message;},onFailure:()=>{window.helmetMapReady=false;}});
+window.helmetMap=map;
+async function poll(){
+ try{const r=await localFetch('/api/navigation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'status'}),signal:AbortSignal.timeout(2000)});
+ if(r.ok){map.update(await r.json());}}
+ catch{}finally{setTimeout(poll,500);}
+}poll();
+</script></body></html>
