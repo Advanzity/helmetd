@@ -77,6 +77,7 @@ struct HudState {
   } route_map;
   bool demo = false;
   struct Navigation {
+    bool from_game = false;
     bool simulated = true;
     std::string state = "idle";
     std::string maneuver = "none";

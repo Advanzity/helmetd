@@ -405,6 +405,25 @@ struct MetalRenderer::Impl {
       text("CHOOSE A DESTINATION", x + 30, y + 65, 14, muted);
       return;
     }
+    if (state.navigation.from_game) {
+      if (!fresh || !state.navigation_fresh(now)) return;
+      corners(x-2, y-2, w+4, h+4, Color{1,1,1,.45f});
+      text("ROUTE", x+12, y-24, 14, white);
+      for (std::size_t i=1; i<map.points.size(); ++i) {
+        const float ax=x+map.points[i-1].first*w/1000.f, ay=y+map.points[i-1].second*h/1000.f;
+        const float bx=x+map.points[i].first*w/1000.f, by=y+map.points[i].second*h/1000.f;
+        const float length=std::hypot(bx-ax, by-ay);
+        if (length < .01f) continue;
+        const float dx=-(by-ay)*1.5f/length, dy=(bx-ax)*1.5f/length;
+        triangle(ax+dx,ay+dy, ax-dx,ay-dy, bx+dx,by+dy,cyan);
+        triangle(ax-dx,ay-dy, bx-dx,by-dy, bx+dx,by+dy,cyan);
+      }
+      if(map.x>=0 && map.y>=0){const float px=x+map.x*w/1000.f,py=y+map.y*h/1000.f;
+        quad(px-4,py-4,8,8,white);}
+      text(state.navigation.state == "paused" ? "GUIDANCE PAUSED" :
+        std::to_string(std::max(0,state.navigation.remaining_m))+" M REMAINING", x+12, y+h+10, 14, white);
+      return;
+    }
     const double clock = NSDate.date.timeIntervalSince1970;
     if (clock - map_checked > .08 && !options.control_socket.empty()) {
       map_checked = clock;
@@ -473,7 +492,7 @@ struct MetalRenderer::Impl {
       text(std::to_string(nav.distance_m) + " M", 640, 36, 30, white);
     }
     if (fresh && nav.state != "idle") text(nav.destination, 640, 76, 16, muted);
-    if (nav.simulated) text("ROUTE PREVIEW", 640, 103, 12, muted);
+    if (nav.simulated && !nav.from_game) text("ROUTE PREVIEW", 640, 103, 12, muted);
   }
 
   void telemetry_panel_view(const HudState& state, Time now) {
@@ -498,7 +517,7 @@ struct MetalRenderer::Impl {
     text("mph", 610, 642, 16, muted);
     quad(658, 613, 1, 42, muted);
     const int gear = game_live ? state.game.gear : state.gear;
-    text(telemetry_fresh ? (gear == 0 ? "N" : std::to_string(gear)) : "-",
+    text(telemetry_fresh ? (gear == -1 ? "R" : gear == 0 ? "N" : std::to_string(gear)) : "-",
         688, 606, 54, telemetry_fresh ? white : muted);
     text("GEAR", 744, 642, 14, muted);
     if (state.demo) text("PREVIEW DATA", 566, 679, 11, muted);

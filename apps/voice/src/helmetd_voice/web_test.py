@@ -91,6 +91,9 @@ def create_web_app(
         async def navigate():
             nonlocal nav_hud
             while True:
+                if game.owns_navigation():
+                    await asyncio.sleep(.25)
+                    continue
                 navigation.tick()
                 if checkpoint:
                     await asyncio.to_thread(checkpoint.save, navigation)

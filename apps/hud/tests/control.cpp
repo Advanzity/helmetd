@@ -16,6 +16,10 @@ int main() {
     require(!state.game_fresh(now + 1501ms));
     require(handle_control("g game 1 45 3 4500 left 0 99", state, now, options).find("error") != std::string::npos);
     require(state.game.crashed);
+    require(handle_control("g game 1 2 -1 1300 off 0 0", state, now, options).find("error") == std::string::npos);
+    require(state.game.gear == -1);
+    require(handle_control("g game_nav navigating left 100 500 60 526f6164", state, now, options).find("error") == std::string::npos);
+    require(state.navigation.from_game && state.navigation.destination == "Road");
     handle_control("g game 0 0 0 0 off 0 0", state, now, options);
     require(!state.game_fresh(now));
     require(handle_control("map nav_map active 100 200 3 0 0 500 500 1000 1000", state, now, options).find("error") == std::string::npos);

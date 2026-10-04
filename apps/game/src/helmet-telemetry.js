@@ -20,16 +20,16 @@ export class HelmetTelemetry {
  }
  toggle(side){this.signal=this.signal===side?'off':side;}
  reset(){this.held.clear();this.signal='off';this.session=crypto.randomUUID();this.sequence=0;}
- async update(now,p,cars,paused){
+ async update(now,p,cars,paused,navigation=null){
   if(this.busy||now-this.last<100)return;
   this.last=now;this.busy=true;
   if(paused)this.held.clear();
   else for(const zone of vehicleWarnings(p,cars))this.held.set(zone,now+1000);
   for(const [zone,until] of this.held)if(now>=until)this.held.delete(zone);
   const packet={session:this.session,sequence:++this.sequence,paused,
-   speed_mps:Math.max(0,p.speed),gear:p.gear,rpm:p.rpm,
+   speed_mps:Math.abs(p.speed),gear:p.reversing?-1:p.gear,rpm:p.rpm,
    signal:paused?'off':this.signal,crashed:!!p.crashed,
-   warnings:[...this.held.keys()]};
+   warnings:[...this.held.keys()],navigation};
   try{
    if(!this.token){const r=await this.fetcher('/api/game/session',{signal:AbortSignal.timeout(1200)});if(!r.ok)throw Error();this.token=(await r.json()).token;}
    const r=await this.fetcher('/api/game/telemetry',{method:'POST',headers:{'Content-Type':'application/json','X-Helmetd':this.token},body:JSON.stringify(packet),signal:AbortSignal.timeout(1200)});

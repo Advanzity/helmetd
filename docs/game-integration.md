@@ -118,3 +118,27 @@ separately hosted production build needs equivalent same-origin proxy routing.
 To check: ride and compare speed/gear, press Z then V then X, approach traffic,
 collide and reset with R, pause with P, then close the game tab and confirm the
 HUD removes game telemetry/cues. Audio requires the existing Pi audio service.
+
+## Foot reverse and road navigation
+
+Hold **B** while nearly stationary to paddle backward at up to 1.15 m/s
+(about 2.6 mph). Releasing B or braking stops the movement; throttle prevents
+engaging reverse. The existing rider skeleton plants alternating feet and eases
+back to the pegs. Both the game and native HUD show R during backward movement.
+
+Press **M**, leave **Navigate here** selected, and click a road. The route follows
+the loaded game road graph, including one-way edges and available turn
+restrictions. The game minimap and street map highlight it; a compact instruction
+shows the next turn and distance. Guidance follows game position, detects route
+deviation, retries routing at a bounded rate, and shows arrival. **End route**
+clears it. **Move rider here** retains the original map relocation behavior.
+
+The native HUD receives the same instructions and a simplified route outline
+(up to 32 points), using game coordinates rather than phone GPS or the physical
+navigation map texture. While game packets are connected, the console's saved
+route is not allowed to overwrite game guidance. After disconnection the console
+resumes its navigation publisher. Physical display registration is unchanged.
+
+Checks: reverse speed/stop/brake behavior, both leg chains in the shipped GLB,
+one-way routing, disconnected roads, turn restrictions, arrival, shipped-map
+connectivity, reverse telemetry, and game navigation ownership are covered by tests.

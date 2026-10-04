@@ -29,7 +29,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
     if (!(input >> active >> game.speed_mph >> game.gear >> game.rpm >> game.signal
                 >> crashed >> game.warnings) || (input >> extra) ||
         active < 0 || active > 1 || crashed < 0 || crashed > 1 ||
-        game.speed_mph < 0 || game.speed_mph > 336 || game.gear < 0 || game.gear > 6 ||
+        game.speed_mph < 0 || game.speed_mph > 336 || game.gear < -1 || game.gear > 6 ||
         game.rpm < 0 || game.rpm > 20000 || game.warnings < 0 || game.warnings > 15 ||
         (game.signal != "off" && game.signal != "left" && game.signal != "right")) return error();
     game.active = active;
@@ -53,9 +53,10 @@ std::string handle_control(const std::string& request, HudState& state, Time now
     if (input >> extra) return error();
     map.received_at = now;
     state.route_map = std::move(map);
-  } else if (command == "nav" || command == "nav_live") {
+  } else if (command == "nav" || command == "nav_live" || command == "game_nav") {
     HudState::Navigation nav;
-    nav.simulated = command == "nav";
+    nav.from_game = command == "game_nav";
+    nav.simulated = command != "nav_live";
     std::string label;
     if (!(input >> nav.state >> nav.maneuver >> nav.distance_m >> nav.remaining_m
                 >> nav.remaining_s >> label) || (input >> extra)) return error();
@@ -172,6 +173,7 @@ std::string handle_control(const std::string& request, HudState& state, Time now
       << ",\"telemetry_source\":\"" << (state.game_fresh(now) ? "game" : state.demo ? "preview" : "unavailable") << "\"";
   out << ",\"telemetry_simulated\":" << (state.demo || state.game_fresh(now)) << ",\"navigation_simulated\":" << state.navigation.simulated << ','
       << "\"navigation_state\":\"" << (state.navigation_fresh(now) ? state.navigation.state : "unavailable")
+      << "\",\"navigation_source\":\"" << (state.navigation.from_game ? "game" : "console")
       << "\",\"navigation_fresh\":" << state.navigation_fresh(now) << ",\"detections\":[";
   bool first = true;
   unsigned count = 0;
