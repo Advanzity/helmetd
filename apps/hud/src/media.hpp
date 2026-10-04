@@ -28,11 +28,14 @@ class CameraInput {
   CameraInput& operator=(const CameraInput&) = delete;
   bool poll(CameraFrame& frame);
   bool failed() const { return failed_; }
+  HudState::RtpStats stats() const;
  private:
   GstElement* pipeline_ = nullptr;
   GstAppSink* sink_ = nullptr;
   GstBus* bus_ = nullptr;
   bool failed_ = false;
+  Time retry_at_{};
+  Time last_sample_at_{};
 };
 
 class VideoOutput {

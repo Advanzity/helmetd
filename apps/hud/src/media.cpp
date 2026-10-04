@@ -3,6 +3,7 @@
 #include <gst/video/video.h>
 
 #include <cstring>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -63,15 +64,35 @@ CameraInput::CameraInput(const HudOptions& options) {
   } else {
     pipeline << "udpsrc port=" << options.camera_port
              << " caps=\"application/x-rtp,media=video,encoding-name=H264,payload=97,clock-rate=90000\""
-                " ! rtpjitterbuffer latency=30 drop-on-latency=true"
+                " ! rtpjitterbuffer name=rtp_jitter latency=80 drop-on-latency=true"
                 " ! rtph264depay ! h264parse"
                 " ! video/x-h264,profile=(string){baseline,constrained-baseline}"
+                " ! tee name=encoded_camera ! queue max-size-buffers=2 leaky=downstream"
                 " ! vtdec_hw ! video/x-raw,format=NV12 ";
   }
   pipeline << "! queue max-size-buffers=1 max-size-bytes=0 max-size-time=0 leaky=downstream"
               " ! videoconvert ! videoscale ! video/x-raw,format=BGRA,width=640,height=360,pixel-aspect-ratio=1/1"
-              " ! appsink name=camera sync=false max-buffers=1 drop=true enable-last-sample=false";
+              " ! appsink name=camera sync=" << (options.camera == "udp" ? "true" : "false")
+           << " max-buffers=1 drop=true enable-last-sample=false";
+  // RTP clock recovery can assign presentation times slightly in the future.
+  // Honor that clock at the sink instead of continuously replacing the latest
+  // sample with a future-dated image that the freshness guard must reject.
+  const bool recording = options.camera == "udp" && !options.record_dir.empty();
+  std::string recording_pattern;
+  if (recording) {
+    const auto directory = std::filesystem::path(options.record_dir) / std::to_string(options.camera_port);
+    std::filesystem::create_directories(directory);
+    recording_pattern = (directory / "segment-%05d.mp4").string();
+    pipeline << " encoded_camera. ! queue max-size-buffers=0 max-size-bytes=0 max-size-time=2000000000 leaky=downstream"
+        " ! h264parse ! splitmuxsink name=rolling muxer-factory=mp4mux async-finalize=true"
+        " max-size-time=5000000000 max-files=8";
+  }
   pipeline_ = make_pipeline(pipeline.str());
+  if (recording) {
+    auto* rolling = gst_bin_get_by_name(GST_BIN(pipeline_), "rolling");
+    g_object_set(rolling, "location", recording_pattern.c_str(), nullptr);
+    gst_object_unref(rolling);
+  }
   sink_ = GST_APP_SINK(gst_bin_get_by_name(GST_BIN(pipeline_), "camera"));
   bus_ = gst_element_get_bus(pipeline_);
   try { start(pipeline_, bus_); }
@@ -81,24 +102,60 @@ CameraInput::CameraInput(const HudOptions& options) {
     throw;
   }
 }
+HudState::RtpStats CameraInput::stats() const {
+  HudState::RtpStats result;
+  if (!pipeline_) return result;
+  auto* jitter = gst_bin_get_by_name(GST_BIN(pipeline_), "rtp_jitter");
+  if (!jitter) return result;
+  GstStructure* stats = nullptr;
+  g_object_get(jitter, "stats", &stats, nullptr);
+  if (stats) {
+    guint64 value = 0;
+    if (gst_structure_get_uint64(stats, "num-pushed", &value)) result.pushed = value;
+    if (gst_structure_get_uint64(stats, "num-lost", &value)) result.lost = value;
+    if (gst_structure_get_uint64(stats, "num-late", &value)) result.late = value;
+    if (gst_structure_get_uint64(stats, "avg-jitter", &value)) result.jitter_ns = value;
+    gst_structure_free(stats);
+  }
+  gst_object_unref(jitter);
+  return result;
+}
 CameraInput::~CameraInput() {
   if (!pipeline_) return;
   gst_element_set_state(pipeline_, GST_STATE_NULL);
   gst_object_unref(bus_); gst_object_unref(sink_); gst_object_unref(pipeline_);
 }
 bool CameraInput::poll(CameraFrame& frame) {
-  if (!pipeline_ || failed_) return false;
+  if (!pipeline_) return false;
+  const auto now = Clock::now();
+  if (failed_) {
+    if (now < retry_at_) return false;
+    gst_element_set_state(pipeline_, GST_STATE_NULL);
+    // Drain old errors before bringing this receiver back up.
+    while (auto* message = gst_bus_pop(bus_)) gst_message_unref(message);
+    try { start(pipeline_, bus_); failed_ = false; last_sample_at_ = Time{}; }
+    catch (...) { retry_at_ = now + std::chrono::seconds(2); }
+    return false;
+  }
   try {
     if (check_bus(bus_)) throw std::runtime_error("Camera stream ended");
   } catch (const std::runtime_error& error) {
     // A camera failure must not stop the rest of the HUD or freeze the downlink.
-    std::cerr << "Camera unavailable: " << error.what() << ". Restart the HUD after fixing the source.\n";
+    std::cerr << "Camera unavailable: " << error.what() << ". Retrying receiver in 2 seconds.\n";
+    retry_at_ = now + std::chrono::seconds(2);
     failed_ = true;
     gst_element_set_state(pipeline_, GST_STATE_NULL);
     return false;
   }
   GstSample* sample = gst_app_sink_try_pull_sample(sink_, 0);
-  if (!sample) return false;
+  if (!sample) {
+    if (last_sample_at_ != Time{} && now - last_sample_at_ > std::chrono::seconds(3)) {
+      failed_ = true;
+      retry_at_ = now;
+    }
+    return false;
+  }
+  last_sample_at_ = now;
   GstVideoInfo info;
   gst_video_info_init(&info);
   GstVideoFrame mapped;
