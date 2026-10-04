@@ -43,7 +43,7 @@ def main():
         source
         + " ! queue max-size-buffers=2 max-size-bytes=0 max-size-time=0 leaky=downstream"
         + " ! videoconvert ! video/x-raw,format=I420"
-        + f" ! x264enc name=encoder tune=zerolatency speed-preset=ultrafast bitrate={args.bitrate} key-int-max={args.fps} bframes=0 byte-stream=true"
+        + f" ! x264enc name=encoder tune=zerolatency speed-preset=ultrafast bitrate={args.bitrate} key-int-max={max(1, args.fps // 3)} bframes=0 byte-stream=true"
         + " ! video/x-h264,profile=constrained-baseline ! h264parse"
         + " ! rtph264pay pt=97 mtu=1200 config-interval=-1 aggregate-mode=none"
         + " ! udpsink name=network sync=false async=false"
