@@ -65,21 +65,41 @@ export function storefrontAtlas(shops){
   c.save();c.translate(index%columns*cellWidth,Math.floor(index/columns)*cellHeight);
   const accent=shop.accent||colors[index%colors.length];c.fillStyle='#a28e76';c.fillRect(0,0,512,256);
   for(let y=0;y<256;y+=12)for(let x=-24;x<512;x+=48){c.fillStyle=(x+y)%3?'#b0a08b':'#998c7b';c.fillRect(x+(y%24?24:0),y,47,11)}
+  c.fillStyle='#d5c7b0';c.fillRect(0,0,512,9);c.fillStyle='#453b2f';c.fillRect(0,9,512,3);
+  c.fillStyle='#40382d';c.fillRect(7,23,498,63);
   c.fillStyle=accent;c.fillRect(8,20,496,61);
+  c.strokeStyle='#e2d2ad66';c.lineWidth=1;c.strokeRect(12,24,488,53);
   c.fillStyle=shop.ink||'#f2e7cf';c.textAlign='center';c.textBaseline='middle';c.font='bold 30px Arial';
   const name=(shop.signName||shop.name).toUpperCase();const width=c.measureText(name).width;if(width>465)c.font=`bold ${Math.floor(30*465/width)}px Arial`;
   if(shop.brand==='qahwah'){c.font='bold 30px Georgia';c.fillText(name,256,43)}else if(shop.brand==='jabal'){
    c.font='bold 38px Georgia';c.fillText('JABAL',256,40);c.font='12px Arial';c.fillText('COFFEE HOUSE',256,61);
   }else{c.fillText(name,256,42)}
   c.font='11px Arial';c.fillText(shop.detail||shop.kind.replaceAll('_',' ').toUpperCase(),256,shop.brand==='jabal'?77:66);
-  const glass=c.createLinearGradient(0,95,0,239);glass.addColorStop(0,'#597780');glass.addColorStop(.45,'#78918e');glass.addColorStop(.48,'#293633');glass.addColorStop(1,'#3a4037');
-  c.fillStyle='#ded8c7';c.fillRect(16,93,480,150);c.fillStyle=glass;c.fillRect(23,99,318,138);c.fillRect(351,99,138,138);
-  c.fillStyle='#b6b3a7';for(const x of [126,232,341,348])c.fillRect(x,96,5,144);
-  c.fillRect(24,157,317,4);c.fillStyle='#e6dfcd';c.fillRect(359,172,5,33);
-  // A menu board and warm interior silhouettes are baked into the glazing.
-  c.fillStyle='#e7d8af';c.fillRect(56,175,40,41);c.fillStyle='#373b32';c.font='9px Arial';c.fillText('MENU',76,183);
-  c.fillStyle='#b7aa86';for(const x of [148,264]){c.fillRect(x,201,44,3);c.fillRect(x+21,204,3,30)}
-  c.fillStyle='#8b7e69';c.fillRect(0,244,512,12);c.restore();
+  const glass=c.createLinearGradient(0,99,0,237);glass.addColorStop(0,'#7e9699');glass.addColorStop(.38,'#667e7e');glass.addColorStop(.65,index%2?'#4f5143':'#575047');glass.addColorStop(1,'#303932');
+  c.fillStyle='#443c32';c.fillRect(15,94,482,150);c.fillStyle='#d7c9af';c.fillRect(16,91,480,150);
+  c.fillStyle=glass;c.fillRect(23,99,318,138);c.fillRect(351,99,138,138);
+  // Interior detail and reflections remain opaque, with no room meshes or lights.
+  c.fillStyle='#282d2766';for(let i=0;i<6;i++)c.fillRect(25+i*53,117+(i%3)*6,44,31);
+  for(const x of [77,182,287]){
+   c.fillStyle='#393f37';c.fillRect(x,101,1,30);c.beginPath();c.moveTo(x-12,137);c.lineTo(x-5,128);c.lineTo(x+5,128);c.lineTo(x+12,137);c.fill();
+   c.fillStyle='#f0d3a0';c.fillRect(x-8,137,16,2);
+  }
+  c.fillStyle='#b6a17a';for(const x of [148,264]){c.fillRect(x,201,44,4);c.fillRect(x+21,205,3,30);c.fillStyle='#454a3c';c.fillRect(x-8,201,5,33);c.fillRect(x-10,185,17,17);c.fillStyle='#b6a17a'}
+  c.fillStyle='#e3ece41b';c.beginPath();c.moveTo(26,102);c.lineTo(115,102);c.lineTo(70,181);c.lineTo(26,196);c.fill();
+  c.beginPath();c.moveTo(238,102);c.lineTo(330,102);c.lineTo(284,170);c.lineTo(238,185);c.fill();
+  c.fillStyle='#d2b785';c.fillRect(54,173,44,44);c.fillStyle='#293c35';c.fillRect(57,176,38,38);c.fillStyle='#e9ddbd';c.font='9px Arial';c.fillText('MENU',76,184);
+  for(let y=191;y<209;y+=5)c.fillRect(62,y,26-(y%3)*3,1);
+  c.fillStyle='#1e312b';for(const x of [31,320]){
+   for(const [dx,dy] of [[0,0],[-5,-7],[5,-13],[-3,-19]]){c.beginPath();c.ellipse(x+dx,217+dy,5,9,dx*.1,0,Math.PI*2);c.fill()}
+  }
+  c.fillStyle='#9b7658';for(const x of [31,320])c.fillRect(x-7,220,14,16);
+  c.fillStyle='#494f48';for(const x of [126,232,341,348])c.fillRect(x,96,5,144);
+  c.fillRect(24,157,317,4);c.fillRect(351,126,138,4);
+  c.fillStyle='#d7cbb5';for(const x of [126,232,348])c.fillRect(x,97,1,141);
+  c.fillStyle='#263b32';c.fillRect(408,151,55,19);c.strokeStyle='#c5b999';c.strokeRect(408,151,55,19);c.fillStyle='#e4d5ad';c.font='10px Arial';c.fillText('OPEN',435,161);
+  c.fillStyle='#252c28';c.fillRect(362,174,5,34);c.fillStyle='#e6dfcd';c.fillRect(359,172,4,33);
+  c.fillStyle='#8d9184';c.fillRect(352,225,135,12);
+  c.fillStyle='#e2d2b6';c.fillRect(16,240,480,4);c.fillStyle='#84745f';c.fillRect(0,244,512,12);c.restore();
  });
  const map=new T.CanvasTexture(canvas);map.colorSpace=T.SRGBColorSpace;map.anisotropy=4;
  return {map,columns,rows};
