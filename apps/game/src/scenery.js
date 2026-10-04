@@ -1,3 +1,4 @@
+import {carveGroundGeometry} from './world.js';
 import {clipGroundAtRoads} from './ground-geometry.js';
 import * as T from 'three';
 import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
@@ -33,11 +34,11 @@ export async function enrichGround(scene,world,loader){
  for(const [d,side] of [[start,-1],[start,1],[end,-1],[end,1]]){const t=(d-start)/Math.max(1,end-start);pts.push([rx+ux*d-uy*side*width/2,road.height*(1-t)+(b.base+.08)*t+.025,-ry-uy*d-ux*side*width/2])}
  for(const i of [0,2,1,1,2,3]){drivewayVertices.push(...pts[i]);drivewayUV.push(pts[i][0]/3,pts[i][2]/3)}
  }
- const dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(drivewayVertices,3));dg.setAttribute('uv',new T.Float32BufferAttribute(drivewayUV,2));dg.computeVertexNormals();const dm=new T.Mesh(dg,new T.MeshStandardMaterial({color:0xa7a49a,roughness:.94,side:T.DoubleSide}));dm.receiveShadow=true;scene.add(dm);
+ const dg=new T.BufferGeometry();dg.setAttribute('position',new T.Float32BufferAttribute(drivewayVertices,3));dg.setAttribute('uv',new T.Float32BufferAttribute(drivewayUV,2));dg.computeVertexNormals();const dm=new T.Mesh(carveGroundGeometry(world,dg,{matchHeight:true}),new T.MeshStandardMaterial({color:0xa7a49a,roughness:.94,side:T.DoubleSide}));dm.receiveShadow=true;scene.add(dm);
  if(world.data.frontages!==false){const foreground=(await loader.loadAsync('/assets/frontages.glb')).scene;foreground.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});scene.add(foreground)}
  // Grass shoulders are tessellated and clipped at mapped roads and parking areas.
  const v=[],uv=[];for(const road of world.data.roads){if(!['trunk','primary','motorway','motorway_link'].includes(road.class)||road.bridge)continue;for(let i=1;i<road.points.length;i++){const a=road.points[i-1],b=road.points[i],dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<1)continue;for(let at=0;at<len;at+=5)for(const side of [-1,1]){const end=Math.min(at+5,len),near=road.width/2+1.5,far=near+(road.class==='motorway'?9:5);const center=[a[0]+dx*(at+end)/2/len-dy/len*side*(near+far)/2,a[1]+dy*(at+end)/2/len+dx/len*side*(near+far)/2];const r=world.roadAt(center[0],-center[1]);if(r&&r.distance<r.road.width/2+1||world.collision(center[0],-center[1])||world.parkingAt(...center))continue;const pts=[];for(const [d,off] of [[at,near],[end,near],[at,far],[end,far]]){const x=a[0]+dx*d/len-dy/len*side*off,y=a[1]+dy*d/len+dx/len*side*off;pts.push([x,world.elevation(x,-y)+.08,-y])}for(const ix of side>0?[0,1,2,1,3,2]:[0,2,1,1,2,3]){v.push(...pts[ix]);uv.push(pts[ix][0]/3,-pts[ix][2]/3)}}}}
- const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();const verges=new T.Mesh(g,grass);verges.receiveShadow=true;scene.add(verges);
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(v,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();const verges=new T.Mesh(carveGroundGeometry(world,g,{matchHeight:true}),grass);verges.receiveShadow=true;scene.add(verges);
 }
 export async function landscapeTrees(scene,world,loader){
  let seed=819;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};const locations=[];const treeCells=new Set();

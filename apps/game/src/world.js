@@ -26,10 +26,10 @@ export class World{
  const bounds=this.data.bounds;if(bounds&&this.data.outerTerrain){const geo=outerTerrainGeometry(this);const grass=await texture('grass-color.jpg');addTerrainTiles(scene,geo,new T.MeshStandardMaterial({map:grass,color:0x9a9d76,roughness:1}));}
 
  const groups=[[],[],[],[]];const stripe=[[],[]];const curbs=[],walks=[];
- const quad=roadStrip;for(const road of this.data.roads){groups[2].push(roadRibbon(road.points,road.width+1.2,road.pavementOffset||0,-.045));groups[road.surface==='concrete'?1:0].push(roadRibbon(road.points,road.width,road.pavementOffset||0));}
+ const quad=roadStrip;for(const road of this.data.roads){groups[2].push(roadRibbon(road.points,road.width+1.2,road.pavementOffset||0,-.045));const pavement=roadRibbon(road.points,road.width,road.pavementOffset||0);groups[road.surface==='concrete'?1:0].push(road.surface==='concrete'&&!road.bridge?carveGroundGeometry(this,pavement,{excludeRoad:road,matchHeight:true,roadFilter:r=>r.surface!=='concrete'}):pavement);}
  for(const s of this.segments){const {a,b,len,road}=s;
  const markStart=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,markEnd=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,markA=a.map((v,k)=>v+(b[k]-v)*markStart/len),markB=b.map((v,k)=>v-(b[k]-a[k])*markEnd/len);
- if(road.curb&&road.class!=='service'){const start=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,end=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,pa=a.map((v,k)=>v+(b[k]-v)*start/len),pb=b.map((v,k)=>v-(b[k]-a[k])*end/len);for(const side of [-1,1]){curbs.push(curbRibbon([pa,pb],side*(road.width/2-.10)));if(['residential','tertiary','unclassified'].includes(road.class))walks.push(roadRibbon([pa,pb],1.52,side*(road.width/2+2.25),.12))}}
+ if(road.curb&&road.class!=='service'){const start=this.nodeDegree.get(road.nodeIds[s.index-1])>2?Math.min(8,len*.4):0,end=this.nodeDegree.get(road.nodeIds[s.index])>2?Math.min(8,len*.4):0,pa=a.map((v,k)=>v+(b[k]-v)*start/len),pb=b.map((v,k)=>v-(b[k]-a[k])*end/len);for(const side of [-1,1]){curbs.push(carveGroundGeometry(this,curbRibbon([pa,pb],side*(road.width/2-.10)),{excludeRoad:road,matchHeight:true}));if(['residential','tertiary','unclassified'].includes(road.class))walks.push(carveGroundGeometry(this,roadRibbon([pa,pb],1.52,side*(road.width/2+2.25),.12),{matchHeight:true}))}}
  if(['service','residential','living_street'].includes(road.class))continue;
  const laneWidth=road.laneWidth||3.35,usable=road.lanes*laneWidth;
  for(const edge of [-1,1]){const q=quad(markA,markB,.12,edge*usable/2,.018);if(q)stripe[road.oneway&&edge<0?1:0].push(q)}
@@ -110,11 +110,11 @@ export function outerTerrainGeometry(world){
  const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(v,3));geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));geo.setIndex(ix);geo.computeVertexNormals();return geo;
 }
 
-export function carveGroundGeometry(world,source){
- const p=source.getAttribute('position'),uv=source.getAttribute('uv'),n=source.getAttribute('normal'),ix=source.index.array,v=Array.from(p.array),u=Array.from(uv.array),normals=Array.from(n.array),indices=[];
+export function carveGroundGeometry(world,source,options={}){
+ const p=source.getAttribute('position'),uv=source.getAttribute('uv'),n=source.getAttribute('normal'),ix=source.index?.array||Array.from({length:p.count},(_,i)=>i),v=Array.from(p.array),u=Array.from(uv.array),normals=Array.from(n.array),indices=[];
  for(let i=0;i<ix.length;i+=3){
   const triangle=Array.from(ix.slice(i,i+3),k=>[p.getX(k),-p.getZ(k),p.getY(k),uv.getX(k),uv.getY(k),n.getX(k),n.getY(k),n.getZ(k)]);
-  const pieces=clipGroundAtRoads(world,triangle);
+  const pieces=clipGroundAtRoads(world,triangle,options);
   if(pieces.length===1&&pieces[0]===triangle){indices.push(ix[i],ix[i+1],ix[i+2]);continue}
   for(const piece of pieces){
    const start=v.length/3;

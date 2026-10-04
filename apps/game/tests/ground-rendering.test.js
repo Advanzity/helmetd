@@ -52,3 +52,23 @@ test('road textures share world coordinates across adjoining segments',async()=>
  }
  a.dispose();b.dispose();
 });
+
+
+test('crossing-road clipping removes raised sidewalks and vertical curbs from travel lanes',async()=>{
+ const {roadRibbon,curbRibbon}=await import('../src/world.js');
+ const side={points:[[-30,0,0],[30,0,0]],nodeIds:['s','t'],width:6};
+ const avenue={points:[[0,-30,0],[0,30,0]],nodeIds:['a','b'],width:24};
+ const world=new World({roads:[side,avenue],buildings:[]});
+ for(const source of [roadRibbon(side.points,1.5,5,.12),curbRibbon(side.points,3)]){
+  const clipped=carveGroundGeometry(world,source,{excludeRoad:side,matchHeight:true});
+  const p=clipped.getAttribute('position'),ix=clipped.index.array;
+  assert.ok(ix.length>0,'sidewalk outside the intersection must remain');
+  for(let i=0;i<ix.length;i+=3){const x=[p.getX(ix[i]),p.getX(ix[i+1]),p.getX(ix[i+2])];assert.ok(x.every(v=>v<=-12)||x.every(v=>v>=12));}
+  clipped.dispose();
+ }
+});
+test('surface clipping retains grade-separated geometry and handles nonindexed patches',()=>{
+ const world=makeWorld(false),source=new T.PlaneGeometry(20,20);source.rotateX(-Math.PI/2);source.translate(0,8,0);
+ const nonindexed=source.toNonIndexed(),result=carveGroundGeometry(world,nonindexed,{matchHeight:true});
+ assert.equal(result.index.count,6);result.dispose();source.dispose();
+});
